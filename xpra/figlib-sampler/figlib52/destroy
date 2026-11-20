@@ -1,0 +1,12 @@
+DEBUG: pySynth loaded from /home/jacob/src/figlibv52/src/pySynth/__init__.py
+[FiggyGen] Generating 10 samples...
+[FiggyGen] Genre: kick
+[FiggyGen] Notes: C4 → [261.63] Hz
+[FiggyGen] Audio Buses: 'fang'
+Generating 10 samples → ./samples/
+Genre: kick
+  [10/10] 0020_kick_kick_808_C4.wav
+[FiggyGen] Done.
+[FiggyGen] Batch complete.
+
+

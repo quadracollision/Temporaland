@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["underwater", "doppler", "formant", "granular_stretch",
+                "spectral_freeze", "reverse", "pitch_shift", "comb", "resonator"],
+    "fx_count": [3, 5],
+    "filter_prob": 0.7,
+    "filter_types": ["lowpass", "bandpass"],
+    "cutoff_range": [100, 2000],
+    "resonance_range": [0.4, 0.8],
+    "reverb_prob": 0.7,
+    "delay_prob": 0.4,
+    "envelope": {
+        "attack": [0.5, 3.0],
+        "hold": [0.0, 0.0],
+        "decay": [3.0, 8.0],
+        "sustain": [0.5, 0.8],
+        "release": [2.0, 6.0]
+    },
+    "lfo": {
+        "prob": 0.7,
+        "rate": [0.02, 0.2],
+        "shapes": ["sine", "random"],
+        "targets": ["filter", "pan", "amp"],
+        "amount": [0.3, 0.7]
+    }
+}
+

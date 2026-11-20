@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["granular", "granular_stretch", "spectral_freeze", "reverse",
+                "stutter", "glitch", "pitch_shift", "h3000", "shimmer"],
+    "fx_count": [3, 5],
+    "filter_prob": 0.5,
+    "filter_types": ["lowpass", "bandpass", "highpass"],
+    "cutoff_range": [200, 8000],
+    "resonance_range": [0.2, 0.6],
+    "reverb_prob": 0.6,
+    "delay_prob": 0.5,
+    "envelope": {
+        "attack": [0.3, 2.0],
+        "hold": [0.0, 0.0],
+        "decay": [3.0, 8.0],
+        "sustain": [0.4, 0.8],
+        "release": [1.0, 5.0]
+    },
+    "lfo": {
+        "prob": 0.5,
+        "rate": [0.05, 0.5],
+        "shapes": ["sine", "random"],
+        "targets": ["filter", "pan"],
+        "amount": [0.2, 0.6]
+    }
+}
+

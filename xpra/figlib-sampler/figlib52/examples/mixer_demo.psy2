@@ -1,0 +1,86 @@
+# General Mixer Demo
+# A customizable 4-channel mixer.
+# Feel free to change the oscillators and effects in the bus definitions below! 
+# Use the UI to sculpt the mix and tweak the parameters.
+
+config {
+  out "./mixer_out"
+  duration 4.0
+  note "C3"
+  genre "custom" # 'custom' uses exactly what we define below
+}
+
+# --- Channel 1: Bass / Rhythm ---
+bus BassChannel {
+  volume 0.8
+  osc saw
+  fx moog(cutoff=600, resonance=0.2)
+  fx tube(drive=0.1)
+}
+
+# --- Channel 2: Leads / Synths ---
+bus SynthChannel {
+  volume 0.7
+  osc supersaw
+  fx chorus(depth=0.5, rate=0.8)
+  fx delay(time=0.375, feedback=0.4, mix=0.2)
+}
+
+# --- Channel 3: Texture / Pads ---
+bus PadChannel {
+  volume 0.6
+  osc pad_wash
+  fx phaser(rate=0.4, depth=0.6)
+  fx reverb(decay=3.0, mix=0.4)
+}
+
+# --- Channel 4: Noise / FX ---
+bus NoiseChannel {
+  volume 0.4
+  osc noise_pink
+  fx filter(filter_type="highpass", cutoff=1000)
+  fx bitcrush(bits=8, mix=0.3)
+}
+
+BassChannel -> master
+SynthChannel -> master
+PadChannel -> master
+NoiseChannel -> master
+
+@ui {
+  # --- UI Header ---
+  textbox out 20 20 180 25 ./mixer_out
+  textbox note 220 20 60 25 C3
+  textbox duration 300 20 60 25 4.0
+  toggle loop 380 25 15 false
+
+  # --- Channel 1 (Bass) ---
+  slider bus.BassChannel.volume 20 100 180 0.0 1.0 0.8
+  toggle bus.BassChannel.mute 210 100 15 false
+  knob BassChannel.moog.cutoff 20 140 25 50 2000 600
+  knob BassChannel.tube.drive 80 140 25 0.0 1.0 0.1
+
+  # --- Channel 2 (Synth) ---
+  slider bus.SynthChannel.volume 250 100 180 0.0 1.0 0.7
+  toggle bus.SynthChannel.mute 440 100 15 false
+  knob SynthChannel.chorus.depth 250 140 25 0.0 1.0 0.5
+  knob SynthChannel.delay.mix 310 140 25 0.0 1.0 0.2
+
+  # --- Channel 3 (Pad) ---
+  slider bus.PadChannel.volume 20 220 180 0.0 1.0 0.6
+  toggle bus.PadChannel.mute 210 220 15 false
+  knob PadChannel.phaser.rate 20 260 25 0.1 5.0 0.4
+  knob PadChannel.reverb.mix 80 260 25 0.0 1.0 0.4
+
+  # --- Channel 4 (Noise) ---
+  slider bus.NoiseChannel.volume 250 220 180 0.0 1.0 0.4
+  toggle bus.NoiseChannel.mute 440 220 15 false
+  knob NoiseChannel.filter.cutoff 250 260 25 100 8000 1000
+  knob NoiseChannel.bitcrush.mix 310 260 25 0.0 1.0 0.3
+  
+  # --- Master Controls ---
+  button Generate 20 340 460 40
+}
+
+generate 1
+

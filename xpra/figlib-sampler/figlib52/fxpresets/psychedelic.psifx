@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["phaser", "flanger", "vibrato", "freq_shift", "doppler",
+                "ring_mod", "chorus", "dimension", "delay", "autopan"],
+    "fx_count": [3, 5],
+    "filter_prob": 0.6,
+    "filter_types": ["bandpass", "notch", "allpass"],
+    "cutoff_range": [300, 5000],
+    "resonance_range": [0.3, 0.7],
+    "reverb_prob": 0.4,
+    "delay_prob": 0.6,
+    "envelope": {
+        "attack": [0.1, 0.5],
+        "hold": [0.0, 0.0],
+        "decay": [1.0, 3.0],
+        "sustain": [0.5, 0.8],
+        "release": [0.5, 2.0]
+    },
+    "lfo": {
+        "prob": 0.9,
+        "rate": [0.2, 3.0],
+        "shapes": ["sine", "triangle", "saw"],
+        "targets": ["filter", "pan", "amp"],
+        "amount": [0.3, 0.8]
+    }
+}
+

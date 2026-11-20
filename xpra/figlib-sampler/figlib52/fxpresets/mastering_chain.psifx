@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["multiband", "compressor", "ssl", "dbx160", "1176",
+                "parallel_comp", "maximizer", "limiter", "exciter", "width_enhance"],
+    "fx_count": [3, 5],
+    "filter_prob": 0.4,
+    "filter_types": ["highpass", "low_shelf"],
+    "cutoff_range": [30, 80],
+    "resonance_range": [0.0, 0.15],
+    "reverb_prob": 0.0,
+    "delay_prob": 0.0,
+    "envelope": {
+        "attack": [0.0, 0.005],
+        "hold": [0.0, 0.0],
+        "decay": [0.3, 1.0],
+        "sustain": [0.9, 1.0],
+        "release": [0.02, 0.1]
+    },
+    "lfo": {
+        "prob": 0.05,
+        "rate": [0.5, 1.0],
+        "shapes": ["sine"],
+        "targets": ["amp"],
+        "amount": [0.01, 0.05]
+    }
+}
+

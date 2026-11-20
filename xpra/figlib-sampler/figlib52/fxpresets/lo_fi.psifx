@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["lofi", "vinyl", "tape", "bitcrush", "warmth", "radio",
+                "telephone", "tube", "body"],
+    "fx_count": [2, 4],
+    "filter_prob": 0.7,
+    "filter_types": ["lowpass", "bandpass"],
+    "cutoff_range": [800, 5000],
+    "resonance_range": [0.1, 0.5],
+    "reverb_prob": 0.3,
+    "delay_prob": 0.2,
+    "envelope": {
+        "attack": [0.005, 0.05],
+        "hold": [0.0, 0.0],
+        "decay": [1.0, 3.0],
+        "sustain": [0.6, 0.9],
+        "release": [0.1, 0.5]
+    },
+    "lfo": {
+        "prob": 0.3,
+        "rate": [0.1, 0.5],
+        "shapes": ["sine", "triangle"],
+        "targets": ["filter"],
+        "amount": [0.05, 0.2]
+    }
+}
+

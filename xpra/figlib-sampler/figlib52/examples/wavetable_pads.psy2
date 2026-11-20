@@ -1,0 +1,62 @@
+# Wavetable Pad Factory
+# Generates wavetable-ready pads with heavy modulation
+
+bus WaveA(volume=0.8) {
+  osc saw, sine
+  fx chorus(depth=0.7, rate=0.3)
+  fx moog(cutoff=0.5, res=0.3)
+}
+
+bus WaveB(volume=0.6) {
+  osc square, triangle
+  fx chorus(depth=0.4, rate=1.5)
+  fx reverb(decay=2.5, mix=0.8)
+}
+
+bus Sub(volume=0.7) {
+  osc sine
+  fx reverb(decay=1.5, mix=0.3)
+}
+
+WaveA -> master
+WaveB -> master
+Sub -> master
+
+config {
+  out ./wavetables
+  count 8
+  duration 2.0
+  genre pad
+  wavetable true
+  zeroc true
+  loop true
+}
+
+@ui {
+  textbox out 10 20 220 25 ./wavetables
+  textbox genre 10 55 80 25 pad
+  textbox note 100 55 60 25 C4
+  textbox count 170 55 50 25 8
+
+  knob chorus.depth 10 110 25 0.0 1.0 0.7
+    range 0.3 0.9
+  knob chorus.rate 80 110 25 0.1 5.0 0.3
+  knob moog.cutoff 150 110 25 0.0 1.0 0.5
+    range 0.2 0.8
+  knob moog.res 220 110 25 0.0 1.0 0.3
+  knob reverb.mix 290 110 25 0.0 1.0 0.8
+    range 0.5 1.0
+  knob reverb.decay 360 110 25 0.1 5.0 2.5
+
+  slider volume 10 195 350 0.0 1.0 0.8
+
+  toggle wavetable 10 240 15 true
+  toggle loop 100 240 15 true
+  toggle zeroc 170 240 15 true
+  toggle exact 240 240 15 false
+
+  button Generate 10 280 350 40
+}
+
+generate
+

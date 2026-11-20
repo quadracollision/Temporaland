@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["exciter", "harmonic_enhance", "stereo_widen", "haas", "transient",
+                "ssl", "1176", "pultec", "dc_remove"],
+    "fx_count": [2, 4],
+    "filter_prob": 0.3,
+    "filter_types": ["highpass", "high_shelf"],
+    "cutoff_range": [80, 200],
+    "resonance_range": [0.0, 0.2],
+    "reverb_prob": 0.1,
+    "delay_prob": 0.05,
+    "envelope": {
+        "attack": [0.001, 0.01],
+        "hold": [0.0, 0.0],
+        "decay": [0.5, 2.0],
+        "sustain": [0.8, 1.0],
+        "release": [0.05, 0.2]
+    },
+    "lfo": {
+        "prob": 0.1,
+        "rate": [0.5, 2.0],
+        "shapes": ["sine"],
+        "targets": ["pan"],
+        "amount": [0.05, 0.15]
+    }
+}
+

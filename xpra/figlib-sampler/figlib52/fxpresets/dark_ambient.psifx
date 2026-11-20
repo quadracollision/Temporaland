@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["reverb", "delay", "shimmer", "granular_stretch", "spectral_freeze",
+                "underwater", "doppler", "emt_plate", "lexicon"],
+    "fx_count": [3, 5],
+    "filter_prob": 0.6,
+    "filter_types": ["lowpass"],
+    "cutoff_range": [200, 3000],
+    "resonance_range": [0.3, 0.7],
+    "reverb_prob": 1.0,
+    "delay_prob": 0.6,
+    "envelope": {
+        "attack": [0.5, 3.0],
+        "hold": [0.0, 0.0],
+        "decay": [4.0, 10.0],
+        "sustain": [0.7, 1.0],
+        "release": [3.0, 8.0]
+    },
+    "lfo": {
+        "prob": 0.5,
+        "rate": [0.01, 0.1],
+        "shapes": ["sine"],
+        "targets": ["filter", "pan"],
+        "amount": [0.2, 0.6]
+    }
+}
+

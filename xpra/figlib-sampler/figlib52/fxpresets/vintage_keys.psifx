@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["tremolo", "vibrato", "autopan", "spring", "tube",
+                "tape", "fender_twin", "small_stone", "re301", "warmth"],
+    "fx_count": [2, 4],
+    "filter_prob": 0.4,
+    "filter_types": ["lowpass", "bandpass"],
+    "cutoff_range": [1000, 6000],
+    "resonance_range": [0.1, 0.4],
+    "reverb_prob": 0.5,
+    "delay_prob": 0.4,
+    "envelope": {
+        "attack": [0.005, 0.05],
+        "hold": [0.0, 0.0],
+        "decay": [1.0, 3.0],
+        "sustain": [0.5, 0.8],
+        "release": [0.2, 0.8]
+    },
+    "lfo": {
+        "prob": 0.7,
+        "rate": [1.0, 6.0],
+        "shapes": ["sine", "triangle"],
+        "targets": ["amp", "filter", "pan"],
+        "amount": [0.2, 0.5]
+    }
+}
+

@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["bitcrush", "lofi", "radio", "telephone", "distortion",
+                "wavefolder", "gate", "stutter", "tape_stop"],
+    "fx_count": [2, 4],
+    "filter_prob": 0.7,
+    "filter_types": ["bandpass", "lowpass"],
+    "cutoff_range": [300, 3000],
+    "resonance_range": [0.2, 0.6],
+    "reverb_prob": 0.1,
+    "delay_prob": 0.2,
+    "envelope": {
+        "attack": [0.0, 0.01],
+        "hold": [0.0, 0.0],
+        "decay": [0.1, 0.5],
+        "sustain": [0.6, 0.9],
+        "release": [0.01, 0.1]
+    },
+    "lfo": {
+        "prob": 0.4,
+        "rate": [2.0, 12.0],
+        "shapes": ["square", "random"],
+        "targets": ["filter", "amp"],
+        "amount": [0.3, 0.8]
+    }
+}
+

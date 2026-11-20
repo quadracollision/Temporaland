@@ -1,0 +1,43 @@
+# Chiptune Generator
+# 8-bit style with square waves, distortion, and fast arpeggiation
+
+bus ChipLead(volume=0.7) {
+  osc square
+  fx distortion(drive=0.4)
+  fx delay(time=0.125, feedback=0.2)
+}
+
+bus ChipBass(volume=0.9) {
+  osc square
+  fx distortion(drive=0.6)
+}
+
+bus Noise(volume=0.3) {
+  osc noise
+}
+
+ChipLead -> master
+ChipBass -> master
+Noise -> master
+
+config {
+  out ./chiptune
+  count 8
+  duration 1.5
+  genre chip
+  exact true
+}
+
+@ui {
+  textbox out 10 20 200 25 ./chiptune
+  textbox note 10 55 80 25 A3
+
+  knob distortion.drive 10 110 25 0.0 1.0 0.4
+  knob delay.time 80 110 25 0.01 0.5 0.125
+  knob delay.feedback 150 110 25 0.0 0.9 0.2
+
+  button Generate 10 180 200 35
+}
+
+generate
+

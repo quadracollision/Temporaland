@@ -1,0 +1,39 @@
+# Acid Bass Generator
+# TB-303 style with saw/square oscillators, moog filter, and distortion
+
+bus Acid(volume=0.9) {
+  osc saw
+  fx moog(cutoff=0.2-0.7, res=0.6-0.9)
+  fx distortion(drive=0.3-0.6)
+  fx delay(time=0.1875, feedback=0.3)
+}
+
+Acid -> master
+
+config {
+  out ./acid_bass
+  count 10
+  duration 2.0
+  genre bass
+  note A1
+  scale minor
+}
+
+@ui {
+  textbox out 10 20 200 25 ./acid_bass
+  textbox note 10 55 80 25 A1
+
+  knob moog.cutoff 10 110 25 0.0 1.0 0.4
+    range 0.2 0.7
+  knob moog.res 80 110 25 0.0 1.0 0.7
+    range 0.6 0.9
+  knob distortion.drive 150 110 25 0.0 1.0 0.4
+    range 0.3 0.6
+
+  slider volume 10 180 250 0.0 1.0 0.9
+
+  button Generate 10 230 250 35
+}
+
+generate
+

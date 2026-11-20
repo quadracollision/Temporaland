@@ -1,0 +1,39 @@
+# PSY2 — Lush Pad Generator
+# Buses are composable audio nodes connected via ->
+
+bus Lead(volume=0.8) {
+  fx chorus(depth=0.5, rate=1.2)
+  fx reverb(decay=2.0, mix=0.6)
+}
+
+bus Bass(volume=0.9) {
+	fx warmth(drive=0.7, low_boost=2)
+	fx re301(rate=0.3, intensity=0.3)
+}
+
+# Audio routing
+Lead -> master
+Bass -> master
+
+# Generation settings
+config {
+  out "./song_031526"
+  count 3
+  duration 2.0
+  genre pad
+  note C4
+  exact false
+}
+
+# UI Controls
+@ui {
+  textbox "out" 10 20 200 25 "./psy2_output"
+  textbox "genre" 10 60 100 25 "pad"
+  textbox "note" 120 60 80 25 "C4"
+
+  button "Generate" 10 200 200 35
+}
+
+generate
+
+

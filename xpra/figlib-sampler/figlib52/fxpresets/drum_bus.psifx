@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["transient", "compressor", "dbx160", "gate", "1176",
+                "sub_bass", "exciter", "limiter", "stereo_imager"],
+    "fx_count": [2, 4],
+    "filter_prob": 0.5,
+    "filter_types": ["highpass", "lowpass"],
+    "cutoff_range": [40, 200],
+    "resonance_range": [0.0, 0.3],
+    "reverb_prob": 0.05,
+    "delay_prob": 0.05,
+    "envelope": {
+        "attack": [0.0, 0.003],
+        "hold": [0.0, 0.0],
+        "decay": [0.05, 0.3],
+        "sustain": [0.5, 0.8],
+        "release": [0.01, 0.08]
+    },
+    "lfo": {
+        "prob": 0.05,
+        "rate": [1.0, 4.0],
+        "shapes": ["sine"],
+        "targets": ["amp"],
+        "amount": [0.02, 0.1]
+    }
+}
+

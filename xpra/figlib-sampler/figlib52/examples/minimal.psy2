@@ -1,0 +1,16 @@
+# Minimal Example
+# Absolute simplest possible PSY2 script
+
+bus Main {
+  osc saw
+}
+
+Main -> master
+
+config {
+  out ./minimal_output
+  count 1
+}
+
+generate
+

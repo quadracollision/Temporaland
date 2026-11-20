@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["distortion", "marshall", "fender_twin", "vox", "tube",
+                "compressor", "1176", "gate", "exciter", "body"],
+    "fx_count": [2, 4],
+    "filter_prob": 0.5,
+    "filter_types": ["lowpass", "highpass", "bandpass"],
+    "cutoff_range": [500, 5000],
+    "resonance_range": [0.2, 0.5],
+    "reverb_prob": 0.4,
+    "delay_prob": 0.3,
+    "envelope": {
+        "attack": [0.0, 0.01],
+        "hold": [0.0, 0.0],
+        "decay": [0.3, 1.0],
+        "sustain": [0.7, 1.0],
+        "release": [0.05, 0.3]
+    },
+    "lfo": {
+        "prob": 0.2,
+        "rate": [0.5, 3.0],
+        "shapes": ["sine"],
+        "targets": ["amp"],
+        "amount": [0.05, 0.2]
+    }
+}
+

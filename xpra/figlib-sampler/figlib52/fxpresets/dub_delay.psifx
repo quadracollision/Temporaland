@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["delay", "ping_pong", "space_echo", "tc2290", "re301",
+                "chorus", "reverb", "tape", "stereo_widen"],
+    "fx_count": [2, 4],
+    "filter_prob": 0.4,
+    "filter_types": ["lowpass", "highpass"],
+    "cutoff_range": [500, 8000],
+    "resonance_range": [0.1, 0.4],
+    "reverb_prob": 0.5,
+    "delay_prob": 1.0,
+    "envelope": {
+        "attack": [0.01, 0.1],
+        "hold": [0.0, 0.0],
+        "decay": [1.0, 3.0],
+        "sustain": [0.5, 0.8],
+        "release": [0.3, 1.5]
+    },
+    "lfo": {
+        "prob": 0.3,
+        "rate": [0.2, 2.0],
+        "shapes": ["sine", "triangle"],
+        "targets": ["filter", "pan"],
+        "amount": [0.1, 0.3]
+    }
+}
+

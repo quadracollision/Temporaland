@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["chorus", "dimension_d", "ce1", "ensemble", "flanger",
+                "phaser", "delay", "emt_plate", "juno_hpf", "obxa"],
+    "fx_count": [2, 4],
+    "filter_prob": 0.5,
+    "filter_types": ["lowpass", "highpass"],
+    "cutoff_range": [1000, 8000],
+    "resonance_range": [0.2, 0.5],
+    "reverb_prob": 0.6,
+    "delay_prob": 0.4,
+    "envelope": {
+        "attack": [0.01, 0.2],
+        "hold": [0.0, 0.0],
+        "decay": [1.0, 4.0],
+        "sustain": [0.5, 0.8],
+        "release": [0.3, 1.5]
+    },
+    "lfo": {
+        "prob": 0.7,
+        "rate": [0.5, 4.0],
+        "shapes": ["sine", "triangle"],
+        "targets": ["filter", "amp", "pan"],
+        "amount": [0.1, 0.4]
+    }
+}
+

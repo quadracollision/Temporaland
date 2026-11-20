@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["comb", "resonator", "formant", "ring_mod", "freq_shift",
+                "wavefolder", "arp_ring", "harmonizer", "pitch_shift"],
+    "fx_count": [2, 4],
+    "filter_prob": 0.7,
+    "filter_types": ["bandpass", "notch", "allpass"],
+    "cutoff_range": [200, 5000],
+    "resonance_range": [0.5, 0.9],
+    "reverb_prob": 0.3,
+    "delay_prob": 0.4,
+    "envelope": {
+        "attack": [0.01, 0.1],
+        "hold": [0.0, 0.0],
+        "decay": [0.5, 2.0],
+        "sustain": [0.4, 0.8],
+        "release": [0.2, 1.0]
+    },
+    "lfo": {
+        "prob": 0.7,
+        "rate": [0.5, 6.0],
+        "shapes": ["sine", "saw", "random"],
+        "targets": ["filter", "amp"],
+        "amount": [0.3, 0.7]
+    }
+}
+

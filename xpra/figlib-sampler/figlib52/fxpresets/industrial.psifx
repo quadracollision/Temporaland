@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["distortion", "bitcrush", "wavefolder", "ring_mod", "gate",
+                "marshall", "fender_twin", "vox", "compressor", "comb"],
+    "fx_count": [2, 5],
+    "filter_prob": 0.5,
+    "filter_types": ["bandpass", "highpass", "notch"],
+    "cutoff_range": [500, 6000],
+    "resonance_range": [0.4, 0.9],
+    "reverb_prob": 0.2,
+    "delay_prob": 0.3,
+    "envelope": {
+        "attack": [0.0, 0.005],
+        "hold": [0.0, 0.0],
+        "decay": [0.1, 0.5],
+        "sustain": [0.7, 1.0],
+        "release": [0.01, 0.1]
+    },
+    "lfo": {
+        "prob": 0.4,
+        "rate": [2.0, 10.0],
+        "shapes": ["square", "random"],
+        "targets": ["filter", "amp"],
+        "amount": [0.3, 0.8]
+    }
+}
+

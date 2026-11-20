@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["303", "moog", "ms20", "wasp", "sem", "prophet", "buchla_lpg",
+                "distortion", "acid", "resonator"],
+    "fx_count": [2, 4],
+    "filter_prob": 0.9,
+    "filter_types": ["lowpass", "bandpass", "notch"],
+    "cutoff_range": [200, 6000],
+    "resonance_range": [0.6, 0.95],
+    "reverb_prob": 0.15,
+    "delay_prob": 0.5,
+    "envelope": {
+        "attack": [0.0, 0.01],
+        "hold": [0.0, 0.0],
+        "decay": [0.1, 0.4],
+        "sustain": [0.0, 0.3],
+        "release": [0.01, 0.1]
+    },
+    "lfo": {
+        "prob": 0.8,
+        "rate": [1.0, 8.0],
+        "shapes": ["saw", "sine", "triangle"],
+        "targets": ["filter"],
+        "amount": [0.5, 1.0]
+    }
+}
+

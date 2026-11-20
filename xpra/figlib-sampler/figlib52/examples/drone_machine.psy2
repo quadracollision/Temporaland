@@ -1,0 +1,43 @@
+# Layered Drone Machine
+# Uses for loops to create multiple layered drone voices
+
+let base_depth = 0.4
+
+# Create 6 drone layers, each with slightly different settings
+for i in 1..6 {
+  bus Drone$i {
+    osc sine, saw
+    fx chorus(depth=0.2-0.8, rate=0.1-1.0)
+    fx reverb(decay=3.0-6.0, mix=0.5-0.9)
+  }
+  Drone$i -> master
+}
+
+config {
+  out ./drones
+  count 3
+  duration 8.0
+  genre pad
+  note C2
+  loop true
+  zeroc true
+}
+
+@ui {
+  textbox out 10 20 200 25 ./drones
+  textbox note 10 55 80 25 C2
+  textbox duration 100 55 80 25 8.0
+
+  knob chorus.depth 10 110 25 0.0 1.0 0.4
+    range 0.2 0.8
+  knob reverb.mix 80 110 25 0.0 1.0 0.7
+    range 0.5 0.9
+
+  toggle loop 10 175 15 true
+  toggle zeroc 80 175 15 true
+
+  button Generate 10 210 200 40
+}
+
+generate
+

@@ -1,0 +1,56 @@
+# Lush Pad Designer
+# A rich pad generator with cascading effects and full UI controls
+
+bus Atmosphere(volume=0.85) {
+  osc saw, square
+  fx chorus(depth=0.6, rate=0.8)
+  fx moog(cutoff=0.35, res=0.4)
+  fx reverb(decay=3.0, mix=0.7)
+}
+
+bus SubLayer(volume=0.6) {
+  osc sine
+  fx delay(time=0.25, feedback=0.3)
+  fx reverb(decay=2.0, mix=0.5)
+}
+
+Atmosphere -> master
+SubLayer -> master
+
+config {
+  out ./lush_pads
+  count 5
+  duration 4.0
+  genre pad
+  note D2
+  zeroc true
+}
+
+@ui {
+  textbox out 10 20 200 25 ./lush_pads
+  textbox genre 10 55 80 25 pad
+  textbox note 100 55 60 25 D2
+  textbox progression 170 55 160 25 "i-VI-IV-v"
+
+  knob chorus.depth 10 120 25 0.0 1.0 0.6
+    range 0.3 0.9
+  knob chorus.rate 80 120 25 0.1 3.0 0.8
+  knob moog.cutoff 150 120 25 0.0 1.0 0.35
+    range 0.1 0.6
+  knob moog.res 220 120 25 0.0 1.0 0.4
+  knob reverb.mix 290 120 25 0.0 1.0 0.7
+    range 0.4 0.9
+  knob reverb.decay 360 120 25 0.1 5.0 3.0
+
+  slider volume 10 200 300 0.0 1.0 0.85
+
+  toggle exact 10 245 15 false
+  toggle loop 80 245 15 false
+  toggle zeroc 150 245 15 true
+
+  button Generate 10 290 300 40
+}
+
+generate
+
+
