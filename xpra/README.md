@@ -22,6 +22,13 @@ so a selection shorter than the clip compresses it without cutting its tail.
 **Keep pitch** uses Audacity's tempo stretcher; **Tape speed** changes duration
 and pitch together.
 
+The installer also supplies a broad LV2 effects collection for Audacity's
+realtime effects rack: LSP, x42, Calf, Guitarix, SWH, Invada, EQ10Q, and MDA.
+Together these cover EQ and filters, compression and limiting, gates, delays,
+reverbs, modulation, saturation and distortion, guitar processing, stereo
+tools, metering, and creative utilities. Audacity must rescan plug-ins once
+after an upgrade; an installed plug-in uses working memory only when loaded.
+
 The **H** taskbar icon opens Helio in the same shared desktop as Audacity. The launcher permits exactly one Helio process for the studio; pressing the icon again does not create another instance. Helio provides the piano roll and hosts the installed LV2 instruments, including synthv1, padthv1, samplv1, SO Synths, and MDA instruments.
 
 Render a pattern from Helio to WAV and choose **Documents → Helio → Audacity imports** as the destination. The WAV then appears in Audacity's import folder without being downloaded to the visitor's computer. Helio and Audacity share the same `Temporaman` PulseAudio output, so the browser's **Listen** button carries playback from either app.

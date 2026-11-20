@@ -17,12 +17,13 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends \
-  audacity automake build-essential curl dbus-x11 ffmpeg libasound2-dev libaubio-dev \
+  audacity automake build-essential calf-plugins curl dbus-x11 eq10q ffmpeg guitarix-lv2 \
+  invada-studio-plugins-lv2 libasound2-dev libaubio-dev lsp-plugins-lv2 \
   libgl1-mesa-dev libjack-jackd2-dev liblo-dev libqt5opengl5-dev \
   liblilv-dev libsuil-dev libpulse-dev librubberband-dev libsamplerate0-dev libsndfile1-dev libtool mda-lv2 nginx \
-  novnc openbox padthv1-lv2 pkg-config pulseaudio pulseaudio-utils python3 python3-numpy python3-scipy python3-soundfile python3-tk \
+  novnc openbox padthv1-lv2 pkg-config pulseaudio pulseaudio-utils python3 python3-numpy python3-scipy python3-soundfile python3-tk swh-lv2 \
   qt5-qmake qtbase5-dev samplv1-lv2 so-synth-lv2 synthv1-lv2 tint2 \
-  unzip websockify x11-utils x11vnc xdotool xvfb
+  unzip websockify x11-utils x11vnc x42-plugins xdotool xvfb
 
 apt-get install -y --no-install-recommends -t noble-backports hydrogen
 

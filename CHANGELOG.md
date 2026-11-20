@@ -28,3 +28,5 @@ First GitHub-ready release of the lightweight shared music workspace.
   shrinks it without cutting audio, with keep-pitch and tape-speed modes.
 - Prevents a slow or stale collaboration WebSocket from blocking presence and
   chat updates for every other visitor.
+- Adds curated realtime LV2 effect suites: LSP, x42, Calf, Guitarix, SWH,
+  Invada, and EQ10Q alongside the existing MDA collection.

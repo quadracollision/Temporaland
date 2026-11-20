@@ -15,6 +15,9 @@ transfer, and optional exclusive-control handoff.
 - PeteShift 2.0 by Jacob Pereira fits the complete clip under a time selection
   to that selection's duration. It supports pitch-preserving tempo change and
   tape-speed pitch movement, including shrinking without cutting the clip.
+- Curated realtime LV2 effects from LSP, x42, Calf, Guitarix, SWH, Invada,
+  EQ10Q, and MDA provide EQ, dynamics, delay, reverb, modulation, saturation,
+  guitar processing, stereo tools, meters, and creative effects.
 - Authenticated upload and download flows move samples between a visitor's
   computer and the shared imports/exports folders.
 - Persistent chat, nicknames, colored cursors, open control, and optional
