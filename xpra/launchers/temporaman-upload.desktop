@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Upload Sample
+Comment=Upload an audio sample from this device
+Exec=/usr/bin/curl -fsS -X POST http://127.0.0.1:14502/request-upload
+Icon=/usr/local/share/icons/temporaman-upload.svg
+Terminal=false
+StartupNotify=false

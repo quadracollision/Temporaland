@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=LV2 Piano Roll
+Comment=Open or focus the Temporaman LV2 piano roll
+Exec=/usr/local/libexec/audacity-studio-open-app lv2
+Icon=/usr/local/share/icons/temporaman-lv2.svg
+Terminal=false
+StartupNotify=false

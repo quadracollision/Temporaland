@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Audacity
+Comment=Open or focus Audacity
+Exec=/usr/local/libexec/audacity-studio-open-app audacity
+Icon=/usr/local/share/icons/temporaman-audacity.svg
+Terminal=false
+StartupNotify=false

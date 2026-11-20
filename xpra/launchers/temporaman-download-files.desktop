@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Save File to Computer
+Comment=Download a Temporaman audio file to this device
+Exec=/usr/bin/curl -fsS -X POST http://127.0.0.1:14502/request-download
+Icon=/usr/local/share/icons/temporaman-download-files.svg
+Terminal=false
+StartupNotify=false

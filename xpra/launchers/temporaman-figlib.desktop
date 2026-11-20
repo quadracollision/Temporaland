@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=FigSynth2
+Comment=Make playable samples with the complete FigLib engine
+Exec=/usr/local/libexec/audacity-studio-open-app figlib
+Icon=/usr/local/share/icons/temporaman-figlib.svg
+Terminal=false
+StartupNotify=false

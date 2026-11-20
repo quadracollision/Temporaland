@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Temporaman Shrine</title><style>
+html,body{height:100%;margin:0;overflow:hidden;background:#11131a;font:14px system-ui,sans-serif}.bar{height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#171a23;color:#fff;border-bottom:1px solid #343b4d;box-sizing:border-box}.brand{font-weight:800;margin-right:auto}.button{color:#fff;background:#7c5cff;border:0;border-radius:8px;padding:8px 12px;text-decoration:none;font:700 14px system-ui,sans-serif;cursor:pointer}.button.audio-on{background:#16845b}.button:disabled{opacity:.65;cursor:wait}iframe{width:100%;height:calc(100% - 48px);border:0;display:block}
+</style></head><body><div class="bar"><span class="brand">Temporaman Shrine</span><button class="button audio-on" id="audio" type="button">&#128260; Connecting&hellip;</button></div>
+<iframe title="Audacity workspace" src="/temporaman/vnc.html?autoconnect=true&resize=remote&path=temporaman/websockify&view_only=false"></iframe>
+<script src="/temporaman/collab.js?v=20261120-exports-first"></script><script>
+window.TemporamanCollab.mount({iframe:document.querySelector('iframe'),bar:document.querySelector('.bar')});
+let audioContext, audioSocket, nextStart = 0, audioWanted = true;
+let audioReconnectTimer = 0, audioReconnectDelay = 500;
+const audioButton = document.querySelector('#audio');
+function stopAudio() {
+  audioWanted = false;
+  clearTimeout(audioReconnectTimer);
+  audioReconnectTimer = 0;
+  if (audioSocket) {
+    audioSocket.onclose = null;
+    audioSocket.close();
+  }
+  if (audioContext) audioContext.close();
+  audioSocket = audioContext = null;
+  nextStart = 0;
+  audioButton.textContent = '\ud83d\udd0a Listen';
+  audioButton.classList.remove('audio-on');
+}
+function scheduleAudioReconnect() {
+  if (!audioWanted || audioReconnectTimer) return;
+  audioButton.textContent = '\ud83d\udd04 Reconnecting\u2026';
+  audioButton.classList.add('audio-on');
+  audioReconnectTimer = window.setTimeout(() => {
+    audioReconnectTimer = 0;
+    connectAudio();
+  }, audioReconnectDelay);
+  audioReconnectDelay = Math.min(5000, audioReconnectDelay * 1.7);
+}
+async function connectAudio() {
+  if (!audioWanted) return;
+  if (!audioContext || audioContext.state === 'closed') {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      audioButton.textContent = 'Audio unavailable';
+      return;
+    }
+    audioContext = new AudioContextClass({sampleRate: 48000, latencyHint: 'interactive'});
+  }
+  await audioContext.resume().catch(() => {});
+  if (!audioWanted || (audioSocket && audioSocket.readyState < 2)) return;
+  const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const socket = new WebSocket(`${scheme}//${location.host}/temporaman/audio`);
+  audioSocket = socket;
+  socket.binaryType = 'arraybuffer';
+  socket.onopen = () => {
+    if (audioSocket !== socket || !audioWanted) return;
+    audioReconnectDelay = 500;
+    nextStart = 0;
+    audioButton.textContent = '\ud83d\udd0a Listening';
+    audioButton.classList.add('audio-on');
+  };
+  socket.onmessage = ({data}) => {
+    if (audioSocket !== socket || !audioWanted || !audioContext) return;
+    const samples = new Int16Array(data);
+    const frames = samples.length / 2;
+    const buffer = audioContext.createBuffer(2, frames, 48000);
+    const left = buffer.getChannelData(0), right = buffer.getChannelData(1);
+    for (let i = 0; i < frames; i++) {
+      left[i] = samples[i * 2] / 32768;
+      right[i] = samples[i * 2 + 1] / 32768;
+    }
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+    nextStart = Math.max(nextStart, audioContext.currentTime + 0.06);
+    source.start(nextStart);
+    nextStart += buffer.duration;
+    if (nextStart > audioContext.currentTime + 0.5) nextStart = audioContext.currentTime + 0.1;
+  };
+  socket.onerror = () => {
+    if (audioSocket === socket && audioWanted) audioButton.textContent = 'Audio interrupted\u2026';
+  };
+  socket.onclose = () => {
+    if (audioSocket !== socket) return;
+    audioSocket = null;
+    scheduleAudioReconnect();
+  };
+}
+audioButton.addEventListener('click', async () => {
+  if (audioWanted && (!audioContext || audioContext.state !== 'running')) {
+    await connectAudio();
+    if (audioContext) await audioContext.resume().catch(() => {});
+    return;
+  }
+  if (audioWanted) { stopAudio(); return; }
+  audioWanted = true;
+  audioReconnectDelay = 500;
+  audioButton.textContent = '\ud83d\udd04 Connecting\u2026';
+  audioButton.classList.add('audio-on');
+  await connectAudio();
+});
+window.addEventListener('online', () => { if (audioWanted) scheduleAudioReconnect(); });
+async function unlockAudio() {
+  if (!audioWanted) return;
+  await connectAudio();
+  if (audioContext && audioContext.state !== 'running') {
+    await audioContext.resume().catch(() => {});
+  }
+}
+document.addEventListener('pointerdown', unlockAudio, {passive:true});
+document.addEventListener('touchend', unlockAudio, {passive:true});
+document.addEventListener('keydown', unlockAudio);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) unlockAudio();
+});
+connectAudio();
+</script></body></html>

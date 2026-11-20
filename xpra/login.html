@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Temporaman Shrine</title>
+  <style>
+    html { min-height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: #000080;
+      background-color: #000066;
+      background-image:
+        radial-gradient(#fff 1px, transparent 1px),
+        radial-gradient(#00ffff 1px, transparent 1px);
+      background-position: 0 0, 17px 19px;
+      background-size: 31px 31px, 43px 43px;
+      font: 13px Verdana, Arial, Helvetica, sans-serif;
+    }
+    .page { width: 520px; max-width: calc(100% - 20px); margin: 38px auto 20px; }
+    .window { background: #c0c0c0; border: 3px outset #fff; box-shadow: 6px 6px 0 #000; }
+    .titlebar { padding: 4px 6px; color: #fff; background: #000080; font-weight: bold; letter-spacing: 1px; }
+    .content { padding: 18px 22px 20px; text-align: center; }
+    h1 { margin: 4px 0 2px; color: #ff00ff; font: bold 34px "Times New Roman", serif; text-shadow: 2px 2px #ffff00; }
+    hr { height: 2px; border: 0; border-top: 2px groove #fff; }
+    .notice { margin: 14px auto; padding: 7px; color: #000; background: #ffffcc; border: 2px inset #fff; text-align: left; }
+    form { width: 300px; max-width: 100%; margin: 18px auto 6px; }
+    label { display: block; margin-bottom: 5px; color: #000; font-weight: bold; }
+    input { width: 100%; box-sizing: border-box; padding: 5px; color: #000; background: #fff; border: 2px inset #fff; font: 14px "Courier New", monospace; }
+    input[aria-invalid="true"] { outline: 2px solid #cc0000; }
+    button { margin-top: 10px; padding: 5px 18px; color: #000; background: #c0c0c0; border: 2px outset #fff; font: bold 13px Verdana, Arial, sans-serif; cursor: pointer; }
+    button:active { border-style: inset; }
+    #error { min-height: 18px; margin: 10px 0 0; color: #cc0000; font-weight: bold; }
+    body.studio-mode { background: #11131a; color: #fff; overflow: hidden; }
+    .studio-bar { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; box-sizing: border-box; background: #171a23; border-bottom: 1px solid #343b4d; }
+    .studio-brand { margin-right: auto; font-weight: bold; }
+    .studio-button { padding: 8px 12px; color: #fff; background: #7c5cff; border: 0; border-radius: 8px; text-decoration: none; font: bold 14px system-ui, sans-serif; cursor: pointer; }
+    .studio-button.audio-on { background: #16845b; }
+    .studio-frame { display: block; width: 100%; height: calc(100vh - 48px); border: 0; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="window">
+      <div class="titlebar">Temporaman Shrine</div>
+      <main class="content">
+        <h1>Temporaman Shrine</h1>
+        <hr>
+        <form id="login">
+          <input id="password" name="password" type="password" autocomplete="current-password" aria-label="Password" required autofocus>
+          <button type="submit">Temporaman Shrine</button>
+        </form>
+        <p id="error" role="alert"></p>
+      </main>
+    </div>
+  </div>
+  <script src="/temporaman/collab.js?v=20261120-exports-first"></script>
+  <script>
+    function openStudio(audioContext) {
+      document.title = 'Temporaman Shrine';
+      history.replaceState(null, '', '/temporaman/shrine.html');
+      document.body.className = 'studio-mode';
+      document.body.innerHTML = `
+        <div class="studio-bar">
+          <span class="studio-brand">Temporaman Shrine</span>
+          <button class="studio-button audio-on" id="audio" type="button">&#128266; Listening</button>
+        </div>
+        <iframe class="studio-frame" title="Audacity workspace" src="/temporaman/vnc.html?autoconnect=true&resize=remote&path=temporaman/websockify&view_only=false"></iframe>`;
+
+      let socket, reconnectTimer = 0, reconnectDelay = 500;
+      let nextStart = 0, audioWanted = true;
+      const button = document.querySelector('#audio');
+      window.TemporamanCollab.mount({iframe: document.querySelector('.studio-frame'), bar: document.querySelector('.studio-bar')});
+      const connect = async () => {
+        if (!audioWanted || (socket && socket.readyState < 2)) return;
+        await audioContext.resume().catch(() => {});
+        if (!audioWanted) return;
+        const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const candidate = new WebSocket(`${scheme}//${location.host}/temporaman/audio`);
+        socket = candidate;
+        candidate.binaryType = 'arraybuffer';
+        candidate.onopen = () => {
+          if (socket !== candidate || !audioWanted) return;
+          reconnectDelay = 500;
+          nextStart = 0;
+          button.textContent = '\ud83d\udd0a Listening';
+          button.classList.add('audio-on');
+        };
+        candidate.onmessage = ({data}) => {
+          if (socket !== candidate || !audioWanted) return;
+          const samples = new Int16Array(data);
+          const frames = samples.length / 2;
+          const buffer = audioContext.createBuffer(2, frames, 48000);
+          const left = buffer.getChannelData(0);
+          const right = buffer.getChannelData(1);
+          for (let index = 0; index < frames; index++) {
+            left[index] = samples[index * 2] / 32768;
+            right[index] = samples[index * 2 + 1] / 32768;
+          }
+          const source = audioContext.createBufferSource();
+          source.buffer = buffer;
+          source.connect(audioContext.destination);
+          nextStart = Math.max(nextStart, audioContext.currentTime + 0.06);
+          source.start(nextStart);
+          nextStart += buffer.duration;
+          if (nextStart > audioContext.currentTime + 0.5) nextStart = audioContext.currentTime + 0.1;
+        };
+        candidate.onerror = () => {
+          if (socket === candidate && audioWanted) button.textContent = 'Audio interrupted\u2026';
+        };
+        candidate.onclose = () => {
+          if (socket !== candidate) return;
+          socket = null;
+          if (!audioWanted || reconnectTimer) return;
+          button.textContent = '\ud83d\udd04 Reconnecting\u2026';
+          reconnectTimer = window.setTimeout(() => {
+            reconnectTimer = 0;
+            connect();
+          }, reconnectDelay);
+          reconnectDelay = Math.min(5000, reconnectDelay * 1.7);
+        };
+      };
+      button.addEventListener('click', async () => {
+        if (audioWanted) {
+          audioWanted = false;
+          clearTimeout(reconnectTimer);
+          reconnectTimer = 0;
+          if (socket) {
+            socket.onclose = null;
+            socket.close();
+            socket = null;
+          }
+          await audioContext.suspend();
+          button.textContent = '\ud83d\udd07 Muted';
+          button.classList.remove('audio-on');
+        } else {
+          audioWanted = true;
+          reconnectDelay = 500;
+          nextStart = 0;
+          button.textContent = '\ud83d\udd04 Connecting\u2026';
+          button.classList.add('audio-on');
+          await connect();
+        }
+      });
+      window.addEventListener('online', () => { if (audioWanted && !socket) connect(); });
+      connect();
+    }
+
+    document.querySelector('#login').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const error = document.querySelector('#error');
+      const passwordInput = document.querySelector('#password');
+      error.textContent = '';
+      passwordInput.removeAttribute('aria-invalid');
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      let audioContext = null;
+      if (AudioContextClass) {
+        try {
+          audioContext = new AudioContextClass();
+          Promise.resolve(audioContext.resume()).catch(() => {});
+        } catch (_) {
+          audioContext = null;
+        }
+      }
+      const body = new URLSearchParams(new FormData(event.currentTarget));
+      let response;
+      try {
+        response = await fetch('/temporaman/api/login', {method: 'POST', body});
+      } catch (_) {
+        passwordInput.setAttribute('aria-invalid', 'true');
+        return;
+      }
+      if (response.ok) {
+        if (audioContext) openStudio(audioContext);
+        else location.replace('/temporaman/shrine.html');
+      } else {
+        if (audioContext) await audioContext.close();
+        passwordInput.value = '';
+        passwordInput.setAttribute('aria-invalid', 'true');
+        passwordInput.focus();
+      }
+    });
+  </script>
+</body>
+</html>

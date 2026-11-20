@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Audio Downloader
+Comment=Download permitted YouTube audio into Audacity imports
+Exec=/usr/local/libexec/audacity-studio-open-app downloader
+Icon=/usr/local/share/icons/temporaman-downloader.svg
+Terminal=false
+StartupNotify=false
