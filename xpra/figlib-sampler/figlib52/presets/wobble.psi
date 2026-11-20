@@ -1,0 +1,30 @@
+{
+    "osc_waveforms": ["saw", "square", "triangle", "pulse", "pwm_sweep", "fm_op", "wavetable"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 1],
+    "unison_detune": [0, 0],
+    "freq_range": [30, 150],
+    "lfo": {
+        "prob": 1.0,
+        "rate": [0.5, 8.0],
+        "shapes": ["sine", "triangle", "square", "saw"],
+        "targets": ["filter:cutoff", "amp:gain", "osc:pwm"],
+        "amount": [0.3, 0.8]
+    },
+    "filter_prob": 1.0,
+    "filter_types": ["lowpass", "bandpass", "formant"],
+    "cutoff_range": [100, 2000],
+    "resonance_range": [0.2, 0.8],
+    "fx_pool": ["distortion", "bitcrush", "tube", "compressor", "phaser", "chorus", "dimension", "multiband"],
+    "fx_prob": 0.8,
+    "delay_prob": 0.3,
+    "reverb_prob": 0.3,
+    "envelope": {
+        "attack": [0.01, 0.1],
+        "hold": [0.0, 0.0],
+        "decay": [0.1, 0.5],
+        "sustain": [0.8, 1.0],
+        "release": [0.1, 0.5]
+    }
+}
+

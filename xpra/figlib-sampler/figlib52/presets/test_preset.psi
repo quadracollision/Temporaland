@@ -1,0 +1,64 @@
+{
+    "osc_waveforms": [
+        "saw"
+    ],
+    "osc_count": [
+        1,
+        1
+    ],
+    "freq_range": [
+        100,
+        200
+    ],
+    "unison_range": [
+        1,
+        1
+    ],
+    "unison_detune": [
+        5,
+        0
+    ],
+    "filter_prob": 0.0,
+    "envelope": {
+        "attack": [
+            0.001,
+            0.05
+        ],
+        "hold": [
+            0.0,
+            0.0
+        ],
+        "decay": [
+            0.1,
+            0.5
+        ],
+        "sustain": [
+            0.5,
+            1.0
+        ],
+        "release": [
+            0.1,
+            0.5
+        ]
+    },
+    "lfo": {
+        "prob": 0.0,
+        "rate": [
+            1,
+            1
+        ],
+        "amount": [
+            0,
+            0
+        ],
+        "shapes": [
+            "sine"
+        ],
+        "targets": []
+    },
+    "fx_pool": [
+        "distortion"
+    ],
+    "reverb_prob": 0.0,
+    "delay_prob": 0.0
+}
