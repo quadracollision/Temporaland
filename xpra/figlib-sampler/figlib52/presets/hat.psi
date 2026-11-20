@@ -1,0 +1,29 @@
+{
+    "osc_waveforms": ["hat_808", "hat_909", "hat", "hat_78", "noise_white", "noise_pink"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 1],
+    "unison_detune": [0, 0],
+    "freq_range": [300, 800],
+    "filter_prob": 0.7,
+    "filter_types": ["highpass", "bandpass"],
+    "cutoff_range": [3000, 12000],
+    "fx_pool": ["bitcrush", "compressor", "gate", "transient", "limiter",
+                "ssl", "tape", "lofi", "fade"],
+    "reverb_prob": 0.05,
+    "delay_prob": 0.0,
+    "envelope": {
+        "attack": [0.0001, 0.002],
+        "hold": [0.0, 0.002],
+        "decay": [0.01, 0.15],
+        "sustain": [0.0, 0.05],
+        "release": [0.01, 0.05]
+    },
+    "lfo": {
+        "prob": 0.03,
+        "rate": [8.0, 20.0],
+        "shapes": ["sine"],
+        "targets": ["filter"],
+        "amount": [0.05, 0.1]
+    }
+}
+

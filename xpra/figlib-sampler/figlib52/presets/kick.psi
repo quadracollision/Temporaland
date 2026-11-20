@@ -1,0 +1,31 @@
+{
+    "osc_waveforms": ["kick_808", "kick_909", "kick", "kick_78", "kick_707", "sine"],
+    "osc_count": [1, 1],
+    "unison_range": [1, 1],
+    "unison_detune": [0, 0],
+    "freq_range": [35, 65],
+    "filter_prob": 0.5,
+    "filter_types": ["lowpass"],
+    "cutoff_range": [80, 800],
+    "fx_pool": ["distortion", "tube", "compressor", "limiter", "transient",
+                "body", "warmth", "maximizer", "dbx160", "ssl",
+                "la2a", "buchla_lpg", "parallel_comp", "multiband",
+                "1176", "tape", "fade", "neve"],
+    "reverb_prob": 0.05,
+    "delay_prob": 0.0,
+    "envelope": {
+        "attack": [0.0001, 0.003],
+        "hold": [0.0, 0.005],
+        "decay": [0.1, 0.5],
+        "sustain": [0.0, 0.15],
+        "release": [0.03, 0.2]
+    },
+    "lfo": {
+        "prob": 0.05,
+        "rate": [0.5, 3.0],
+        "shapes": ["sine"],
+        "targets": ["pitch"],
+        "amount": [0.02, 0.08]
+    }
+}
+

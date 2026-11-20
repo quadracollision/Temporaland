@@ -1,0 +1,40 @@
+{
+    "osc_waveforms": ["noise_white", "noise_pink", "noise_brown", "noise_blue",
+                      "sine", "morph", "saw",
+                      "fm_op", "harsh", "chip", "glass", "bell",
+                      "vocal", "breath", "click"],
+    "osc_count": [1, 3],
+    "unison_range": [1, 4],
+    "unison_detune": [0, 50],
+    "freq_range": [50, 5000],
+    "filter_prob": 0.5,
+    "filter_types": ["bandpass", "highpass", "notch", "comb", "formant"],
+    "cutoff_range": [200, 8000],
+    "fx_pool": ["ring_mod", "freq_shift", "bitcrush", "phaser",
+                "distortion", "autopan", "tape", "lofi", "stutter",
+                "wavefolder", "resonator", "pitch_shift", "glitch",
+                "reverse", "radio", "doppler", "vinyl", "underwater",
+                "telephone", "tape_stop", "shimmer",
+                "ms20", "space_echo", "marshall", "spring",
+                "lexicon", "small_stone",
+                "arp_ring", "buchla_lpg", "studer",
+                "granular", "spectral_freeze", "granular_stretch", "spatial",
+                "wasp", "ams_reverb", "tc2290"],
+    "reverb_prob": 0.7,
+    "delay_prob": 0.6,
+    "envelope": {
+        "attack": [0.01, 1.0],
+        "hold": [0.0, 0.5],
+        "decay": [0.1, 2.0],
+        "sustain": [0.0, 1.0],
+        "release": [0.1, 2.0]
+    },
+    "lfo": {
+        "prob": 0.5,
+        "rate": [0.05, 10.0],
+        "shapes": ["sine", "sample_hold", "random_walk", "saw"],
+        "targets": ["filter", "amp", "pitch"],
+        "amount": [0.2, 0.8]
+    }
+}
+

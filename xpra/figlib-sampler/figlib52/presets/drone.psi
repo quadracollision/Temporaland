@@ -1,0 +1,32 @@
+{
+    "osc_waveforms": ["drone_dark", "pad_wash", "saw", "supersaw", "additive", "strings"],
+    "osc_count": [2, 3],
+    "unison_range": [2, 5],
+    "unison_detune": [10, 40],
+    "freq_range": [30, 200],
+    "filter_prob": 0.8,
+    "filter_types": ["lowpass"],
+    "cutoff_range": [100, 2000],
+    "fx_pool": ["distortion", "tube", "wavefolder", "resonator",
+                "moog", "phaser", "flanger", "chorus",
+                "warmth", "body", "stereo_widen", "dimension",
+                "neve", "studer", "tape", "fade",
+                "granular", "spectral_freeze"],
+    "reverb_prob": 0.7,
+    "delay_prob": 0.3,
+    "envelope": {
+        "attack": [0.3, 2.0],
+        "hold": [0.0, 0.1],
+        "decay": [0.5, 2.0],
+        "sustain": [0.6, 1.0],
+        "release": [0.3, 1.5]
+    },
+    "lfo": {
+        "prob": 0.7,
+        "rate": [0.05, 0.5],
+        "shapes": ["sine", "triangle"],
+        "targets": ["filter", "pitch"],
+        "amount": [0.1, 0.4]
+    }
+}
+

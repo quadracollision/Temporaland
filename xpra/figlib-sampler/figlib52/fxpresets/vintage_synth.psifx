@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["moog", "prophet", "obxa", "juno_hpf", "buchla_lpg",
+                "chorus", "dimension_d", "ensemble", "ce1", "phaser"],
+    "fx_count": [2, 4],
+    "filter_prob": 0.8,
+    "filter_types": ["lowpass"],
+    "cutoff_range": [500, 8000],
+    "resonance_range": [0.3, 0.7],
+    "reverb_prob": 0.3,
+    "delay_prob": 0.2,
+    "envelope": {
+        "attack": [0.01, 0.2],
+        "hold": [0.0, 0.0],
+        "decay": [0.5, 2.0],
+        "sustain": [0.4, 0.8],
+        "release": [0.1, 0.5]
+    },
+    "lfo": {
+        "prob": 0.6,
+        "rate": [0.3, 3.0],
+        "shapes": ["sine", "triangle"],
+        "targets": ["filter"],
+        "amount": [0.2, 0.6]
+    }
+}
+

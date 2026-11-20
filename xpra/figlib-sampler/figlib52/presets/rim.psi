@@ -1,0 +1,29 @@
+{
+    "osc_waveforms": ["rimshot", "click", "woodblock"],
+    "osc_count": [1, 1],
+    "unison_range": [1, 1],
+    "unison_detune": [0, 0],
+    "freq_range": [800, 2000],
+    "filter_prob": 0.5,
+    "filter_types": ["bandpass"],
+    "cutoff_range": [800, 5000],
+    "fx_pool": ["compressor", "transient", "gate", "limiter",
+                "tube", "ssl", "fade"],
+    "reverb_prob": 0.3,
+    "delay_prob": 0.05,
+    "envelope": {
+        "attack": [0.0001, 0.001],
+        "hold": [0.0, 0.001],
+        "decay": [0.02, 0.1],
+        "sustain": [0.0, 0.05],
+        "release": [0.01, 0.05]
+    },
+    "lfo": {
+        "prob": 0.02,
+        "rate": [5.0, 15.0],
+        "shapes": ["sine"],
+        "targets": ["filter"],
+        "amount": [0.05, 0.1]
+    }
+}
+

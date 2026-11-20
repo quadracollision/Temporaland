@@ -1,0 +1,24 @@
+{
+    "osc_waveforms": ["noise_white", "aw_sweep", "super_saw", "pwm_sweep", "fm_op", "vocal_sweep"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 1],
+    "unison_detune": [0.0, 0.0],
+    "freq_range": [50, 1000],
+    "pitch_mod_range": [-12, -24],
+    "pitch_mod_speed": [0.1, 0.5],
+    "envelope": {
+        "attack": [0.0, 0.5],
+        "hold": [0.0, 0.0],
+        "decay": [1.0, 4.0],
+        "sustain": [0.0, 0.0],
+        "release": [1.0, 4.0]
+    },
+    "filter_prob": 1.0,
+    "filter_types": ["lowpass", "bandpass"],
+    "cutoff_range": [2000, 100],
+    "fx_pool": ["reverb", "delay", "flanger", "phaser", "stereo_widen", "autopan"],
+    "fx_prob": 1.0,
+    "reverb_prob": 0.8,
+    "delay_prob": 0.6
+}
+

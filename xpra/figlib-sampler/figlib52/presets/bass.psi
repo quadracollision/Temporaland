@@ -1,0 +1,33 @@
+{
+    "osc_waveforms": ["saw", "square", "pulse", "sine", "morph", "supersaw", "fm_op", "organ", "brass"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 3],
+    "unison_detune": [5, 25],
+    "freq_range": [30, 120],
+    "filter_prob": 0.8,
+    "filter_types": ["lowpass"],
+    "cutoff_range": [200, 2000],
+    "fx_pool": ["distortion", "tube", "compressor", "limiter", "wavefolder",
+                "sub_bass", "transient", "octaver", "tape_stop",
+                "moog", "303", "marshall", "dbx160", "neve",
+                "la2a", "studer", "pultec", "buchla_lpg",
+                "warmth", "body", "maximizer", "multiband",
+                "parallel_comp", "harmonic_enhance"],
+    "reverb_prob": 0.15,
+    "delay_prob": 0.1,
+    "envelope": {
+        "attack": [0.001, 0.02],
+        "hold": [0.0, 0.01],
+        "decay": [0.1, 0.4],
+        "sustain": [0.6, 0.9],
+        "release": [0.05, 0.2]
+    },
+    "lfo": {
+        "prob": 0.2,
+        "rate": [0.5, 4.0],
+        "shapes": ["sine", "triangle"],
+        "targets": ["filter"],
+        "amount": [0.1, 0.4]
+    }
+}
+

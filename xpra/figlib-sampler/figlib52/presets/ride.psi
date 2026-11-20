@@ -1,0 +1,29 @@
+{
+    "osc_waveforms": ["cymbal_ride", "hat_808", "hat_909", "bell", "glass"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 1],
+    "unison_detune": [0, 0],
+    "freq_range": [300, 1000],
+    "filter_prob": 0.5,
+    "filter_types": ["highpass", "bandpass"],
+    "cutoff_range": [2000, 10000],
+    "fx_pool": ["compressor", "gate", "transient", "limiter",
+                "tape", "ssl", "fade", "exciter"],
+    "reverb_prob": 0.4,
+    "delay_prob": 0.05,
+    "envelope": {
+        "attack": [0.0002, 0.003],
+        "hold": [0.0, 0.005],
+        "decay": [0.3, 1.5],
+        "sustain": [0.0, 0.1],
+        "release": [0.1, 0.5]
+    },
+    "lfo": {
+        "prob": 0.05,
+        "rate": [1.0, 5.0],
+        "shapes": ["sine"],
+        "targets": ["filter"],
+        "amount": [0.05, 0.15]
+    }
+}
+

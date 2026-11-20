@@ -1,0 +1,30 @@
+{
+    "osc_waveforms": ["sine", "triangle"],
+    "osc_count": [1, 1],
+    "unison_range": [1, 1],
+    "unison_detune": [0, 0],
+    "freq_range": [20, 60],
+    "filter_prob": 0.3,
+    "filter_types": ["lowpass"],
+    "cutoff_range": [60, 200],
+    "fx_pool": ["tube", "compressor", "limiter", "warmth", "body",
+                "maximizer", "la2a", "neve", "1176", "fade",
+                "parallel_comp", "sub_bass"],
+    "reverb_prob": 0.0,
+    "delay_prob": 0.0,
+    "envelope": {
+        "attack": [0.002, 0.02],
+        "hold": [0.0, 0.01],
+        "decay": [0.1, 0.3],
+        "sustain": [0.7, 1.0],
+        "release": [0.05, 0.2]
+    },
+    "lfo": {
+        "prob": 0.05,
+        "rate": [0.1, 1.0],
+        "shapes": ["sine"],
+        "targets": ["pitch"],
+        "amount": [0.01, 0.03]
+    }
+}
+

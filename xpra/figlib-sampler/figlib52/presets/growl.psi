@@ -1,0 +1,29 @@
+{
+    "osc_waveforms": ["saw", "pwm_sweep", "wavetable", "fm_op", "additive", "formant"],
+    "osc_count": [1, 2],
+    "unison_range": [3, 7],
+    "unison_detune": [0.1, 0.3],
+    "freq_range": [30, 150],
+    "envelope": {
+        "attack": [0.05, 0.3],
+        "hold": [0.0, 0.0],
+        "decay": [0.2, 0.8],
+        "sustain": [0.4, 0.8],
+        "release": [0.2, 0.6]
+    },
+    "filter_prob": 1.0,
+    "filter_types": ["lowpass", "bandpass", "formant"],
+    "cutoff_range": [100, 2500],
+    "fx_pool": ["wavefolder", "distortion", "tube", "303", "formant", "dimension", "compressor", "multiband", "limiter"],
+    "fx_prob": 1.0,
+    "delay_prob": 0.3,
+    "reverb_prob": 0.4,
+    "lfo": {
+        "prob": 0.8,
+        "rate": [0.5, 4.0],
+        "shapes": ["sine", "custom", "random_walk"],
+        "targets": ["filter:cutoff", "osc:detune", "osc:morph"],
+        "amount": [0.2, 0.6]
+    }
+}
+

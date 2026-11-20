@@ -1,0 +1,22 @@
+{
+    "osc_waveforms": ["sine", "triangle", "fm_op", "bell", "glass", "additive", "woodblock"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 1],
+    "unison_detune": [0.0, 0.05],
+    "freq_range": [150, 4000],
+    "envelope": {
+        "attack": [0.001, 0.02],
+        "hold": [0.0, 0.01],
+        "decay": [0.3, 1.0],
+        "sustain": [0.0, 0.1],
+        "release": [0.1, 0.5]
+    },
+    "filter_prob": 0.8,
+    "filter_types": ["lowpass", "bandpass", "comb"],
+    "cutoff_range": [400, 3000],
+    "fx_pool": ["reverb", "delay", "chorus", "cabinet", "body", "resonator", "exciter"],
+    "fx_prob": 0.7,
+    "reverb_prob": 0.6,
+    "delay_prob": 0.4
+}
+

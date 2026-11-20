@@ -1,0 +1,30 @@
+{
+    "osc_waveforms": ["noise_white", "noise_pink", "noise_brown", "noise_blue", "noise_purple", "breath"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 1],
+    "unison_detune": [0, 0],
+    "freq_range": [100, 5000],
+    "filter_prob": 0.9,
+    "filter_types": ["lowpass", "highpass", "bandpass"],
+    "cutoff_range": [100, 10000],
+    "fx_pool": ["filter", "moog", "sem", "ms20", "prophet",
+                "resonator", "compressor", "gate", "transient",
+                "tube", "phaser", "flanger", "fade"],
+    "reverb_prob": 0.3,
+    "delay_prob": 0.2,
+    "envelope": {
+        "attack": [0.01, 0.5],
+        "hold": [0.0, 0.05],
+        "decay": [0.1, 1.0],
+        "sustain": [0.0, 0.8],
+        "release": [0.05, 0.5]
+    },
+    "lfo": {
+        "prob": 0.6,
+        "rate": [0.1, 5.0],
+        "shapes": ["sine", "triangle", "exp_fall"],
+        "targets": ["filter"],
+        "amount": [0.3, 0.8]
+    }
+}
+

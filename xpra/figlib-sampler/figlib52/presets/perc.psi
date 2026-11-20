@@ -1,0 +1,37 @@
+{
+    "osc_waveforms": ["kick_808", "snare_808", "hat_808", "cowbell_808",
+                      "kick_909", "snare_909", "hat_909",
+                      "noise_white", "noise_pink", "sine", "square",
+                      "kick", "snare", "hat", "click", "chip"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 1],
+    "unison_detune": [0, 0],
+    "freq_range": [40, 400],
+    "filter_prob": 0.7,
+    "filter_types": ["lowpass", "highpass", "bandpass"],
+    "cutoff_range": [200, 5000],
+    "fx_pool": ["distortion", "bitcrush", "compressor", "limiter",
+                "transient", "gate", "resonator", "reverse", "glitch",
+                "tape_stop", "fade",
+                "dbx160", "ssl", "marshall", "ms20",
+                "la2a", "buchla_lpg", "vox",
+                "parallel_comp", "multiband", "maximizer", "body",
+                "1176", "ams_reverb"],
+    "reverb_prob": 0.3,
+    "delay_prob": 0.1,
+    "envelope": {
+        "attack": [0.0005, 0.005],
+        "hold": [0.0, 0.005],
+        "decay": [0.05, 0.3],
+        "sustain": [0.0, 0.2],
+        "release": [0.02, 0.15]
+    },
+    "lfo": {
+        "prob": 0.1,
+        "rate": [5.0, 20.0],
+        "shapes": ["sine", "exp_fall"],
+        "targets": ["filter"],
+        "amount": [0.1, 0.3]
+    }
+}
+

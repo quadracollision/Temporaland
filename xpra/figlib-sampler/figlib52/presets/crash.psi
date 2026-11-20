@@ -1,0 +1,23 @@
+{
+    "osc_waveforms": ["noise_white", "noise_pink", "cymbal_crash"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 1],
+    "unison_detune": [0.0, 0.0],
+    "freq_range": [500, 8000],
+    "filter_prob": 1.0,
+    "filter_types": ["highpass", "bandpass"],
+    "cutoff_range": [3000, 10000],
+    "fx_pool": ["reverb", "bitcrush", "flanger", "stereo_widen"],
+    "fx_prob": 0.8,
+    "delay_prob": 0.0,
+    "reverb_prob": 0.6,
+    "reverb_size": [0.6, 0.99],
+    "envelope": {
+        "attack": [0.001, 0.05],
+        "hold": [0.0, 0.0],
+        "decay": [1.5, 4.0],
+        "sustain": [0.0, 0.0],
+        "release": [2.0, 5.0]
+    }
+}
+

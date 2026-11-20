@@ -1,0 +1,36 @@
+{
+    "osc_waveforms": ["saw", "triangle", "morph", "pulse", "sine", "supersaw", "wavetable", "pad_wash", "strings", "additive", "breath", "vocal"],
+    "osc_count": [2, 3],
+    "unison_range": [3, 7],
+    "unison_detune": [10, 35],
+    "freq_range": [100, 500],
+    "filter_prob": 0.7,
+    "filter_types": ["lowpass", "bandpass"],
+    "cutoff_range": [500, 8000],
+    "fx_pool": ["chorus", "phaser", "stereo_widen", "tape", "ensemble",
+                "sidechain", "vibrato", "shimmer", "dimension",
+                "haas", "underwater", "crystal", "harmonizer",
+                "ce1", "small_stone", "emt_plate", "lexicon",
+                "fairchild", "prophet",
+                "re301", "h3000", "studer", "pultec", "juno_hpf",
+                "granular", "spectral_freeze", "spatial",
+                "stereo_imager", "warmth", "width_enhance",
+                "dimension_d", "obxa", "tc2290"],
+    "reverb_prob": 0.85,
+    "delay_prob": 0.5,
+    "envelope": {
+        "attack": [0.2, 1.5],
+        "hold": [0.0, 0.1],
+        "decay": [0.5, 2.0],
+        "sustain": [0.5, 0.9],
+        "release": [0.5, 2.0]
+    },
+    "lfo": {
+        "prob": 0.6,
+        "rate": [0.1, 2.0],
+        "shapes": ["sine", "triangle", "random_walk"],
+        "targets": ["filter", "amp", "pitch"],
+        "amount": [0.1, 0.5]
+    }
+}
+

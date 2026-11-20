@@ -1,0 +1,36 @@
+{
+    "osc_waveforms": ["sine", "triangle", "pulse", "morph",
+                      "organ", "bell", "pluck", "additive",
+                      "wavetable", "glass", "fm_op"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 3],
+    "unison_detune": [2, 15],
+    "freq_range": [100, 1500],
+    "filter_prob": 0.5,
+    "filter_types": ["lowpass", "low_shelf", "peaking"],
+    "cutoff_range": [1000, 10000],
+    "fx_pool": ["chorus", "tremolo", "compressor", "exciter", "ensemble",
+                "tape", "dimension", "harmonizer", "vinyl", "haas",
+                "ce1", "neve", "fairchild", "ssl", "emt_plate", "spring",
+                "re301", "fender_twin", "la2a", "pultec", "studer",
+                "warmth", "body", "width_enhance",
+                "harmonic_enhance", "stereo_imager",
+                "dimension_d", "tc2290"],
+    "reverb_prob": 0.6,
+    "delay_prob": 0.3,
+    "envelope": {
+        "attack": [0.001, 0.01],
+        "hold": [0.0, 0.02],
+        "decay": [0.2, 0.8],
+        "sustain": [0.3, 0.7],
+        "release": [0.1, 0.5]
+    },
+    "lfo": {
+        "prob": 0.3,
+        "rate": [1.0, 5.0],
+        "shapes": ["sine", "triangle"],
+        "targets": ["amp", "filter"],
+        "amount": [0.05, 0.2]
+    }
+}
+

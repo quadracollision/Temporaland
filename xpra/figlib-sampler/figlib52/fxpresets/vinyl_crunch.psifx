@@ -1,0 +1,26 @@
+{
+    "fx_pool": ["vinyl", "lofi", "filter", "wow_flutter", "noise_pink",
+                "compressor", "tape", "eq_three_band"],
+    "fx_count": [3, 4],
+    "filter_prob": 0.8,
+    "filter_types": ["lowpass", "bandpass"],
+    "cutoff_range": [500, 3000],
+    "resonance_range": [0.0, 0.2],
+    "reverb_prob": 0.1,
+    "delay_prob": 0.0,
+    "envelope": {
+        "attack": [0.0, 0.02],
+        "hold": [0.0, 0.0],
+        "decay": [0.5, 1.0],
+        "sustain": [1.0, 1.0],
+        "release": [0.01, 0.05]
+    },
+    "lfo": {
+        "prob": 0.8,
+        "rate": [0.5, 2.0],
+        "shapes": ["sine"],
+        "targets": ["pitch"],
+        "amount": [0.01, 0.03]
+    }
+}
+

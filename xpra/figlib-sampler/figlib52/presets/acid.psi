@@ -1,0 +1,24 @@
+{
+    "osc_waveforms": ["saw", "square"],
+    "osc_count": [1, 1],
+    "unison_range": [1, 1],
+    "unison_detune": [0.0, 0.0],
+    "freq_range": [60, 800],
+    "filter_prob": 1.0,
+    "filter_types": ["lowpass", "bandpass"],
+    "cutoff_range": [300, 2000],
+    "resonance_range": [0.6, 0.95],
+    "envelope": {
+        "attack": [0.001, 0.05],
+        "hold": [0.0, 0.0],
+        "decay": [0.1, 0.4],
+        "sustain": [0.0, 0.3],
+        "release": [0.1, 0.3]
+    },
+    "fx_pool": ["303", "distortion", "delay", "reverb", "tube", "overdrive"],
+    "fx_prob": 1.0,
+    "distortion_prob": 0.8,
+    "delay_prob": 0.5,
+    "reverb_prob": 0.2
+}
+

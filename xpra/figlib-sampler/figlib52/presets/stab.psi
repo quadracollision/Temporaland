@@ -1,0 +1,30 @@
+{
+    "osc_waveforms": ["saw", "square", "supersaw", "pulse", "brass", "organ"],
+    "osc_count": [1, 3],
+    "unison_range": [1, 4],
+    "unison_detune": [5, 20],
+    "freq_range": [80, 600],
+    "filter_prob": 0.8,
+    "filter_types": ["lowpass"],
+    "cutoff_range": [500, 4000],
+    "fx_pool": ["compressor", "limiter", "distortion", "tube",
+                "transient", "ssl", "1176", "neve",
+                "body", "warmth", "maximizer", "fade"],
+    "reverb_prob": 0.2,
+    "delay_prob": 0.05,
+    "envelope": {
+        "attack": [0.001, 0.01],
+        "hold": [0.0, 0.01],
+        "decay": [0.03, 0.15],
+        "sustain": [0.0, 0.3],
+        "release": [0.02, 0.1]
+    },
+    "lfo": {
+        "prob": 0.1,
+        "rate": [3.0, 10.0],
+        "shapes": ["sine"],
+        "targets": ["filter"],
+        "amount": [0.1, 0.3]
+    }
+}
+

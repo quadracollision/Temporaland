@@ -1,0 +1,30 @@
+{
+    "osc_waveforms": ["pluck", "glass", "bell", "fm_op", "additive"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 2],
+    "unison_detune": [3, 15],
+    "freq_range": [100, 2000],
+    "filter_prob": 0.6,
+    "filter_types": ["lowpass", "bandpass"],
+    "cutoff_range": [500, 6000],
+    "fx_pool": ["compressor", "chorus", "delay", "tube", "tape",
+                "warmth", "body", "transient", "exciter",
+                "ce1", "dimension_d", "fade", "ssl"],
+    "reverb_prob": 0.5,
+    "delay_prob": 0.3,
+    "envelope": {
+        "attack": [0.001, 0.01],
+        "hold": [0.0, 0.005],
+        "decay": [0.1, 0.6],
+        "sustain": [0.0, 0.2],
+        "release": [0.05, 0.3]
+    },
+    "lfo": {
+        "prob": 0.15,
+        "rate": [1.0, 6.0],
+        "shapes": ["sine", "triangle"],
+        "targets": ["filter"],
+        "amount": [0.05, 0.2]
+    }
+}
+

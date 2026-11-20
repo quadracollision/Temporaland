@@ -1,0 +1,30 @@
+{
+    "osc_waveforms": ["snare_808", "snare_909", "snare", "snare_78", "snare_707", "noise_white"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 1],
+    "unison_detune": [0, 0],
+    "freq_range": [150, 250],
+    "filter_prob": 0.6,
+    "filter_types": ["bandpass", "highpass"],
+    "cutoff_range": [500, 6000],
+    "fx_pool": ["distortion", "bitcrush", "compressor", "transient", "gate",
+                "tube", "ssl", "1176", "tape", "body",
+                "parallel_comp", "fade", "limiter", "neve"],
+    "reverb_prob": 0.3,
+    "delay_prob": 0.05,
+    "envelope": {
+        "attack": [0.0002, 0.003],
+        "hold": [0.0, 0.003],
+        "decay": [0.05, 0.25],
+        "sustain": [0.0, 0.1],
+        "release": [0.02, 0.1]
+    },
+    "lfo": {
+        "prob": 0.05,
+        "rate": [5.0, 15.0],
+        "shapes": ["sine", "exp_fall"],
+        "targets": ["filter"],
+        "amount": [0.05, 0.15]
+    }
+}
+

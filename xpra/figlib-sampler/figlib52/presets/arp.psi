@@ -1,0 +1,29 @@
+{
+    "osc_waveforms": ["saw", "square", "pluck", "chip", "fm_op", "sine"],
+    "osc_count": [1, 2],
+    "unison_range": [1, 1],
+    "unison_detune": [0, 0],
+    "freq_range": [150, 2000],
+    "filter_prob": 1.0,
+    "filter_types": ["lowpass", "bandpass"],
+    "cutoff_range": [200, 3000],
+    "fx_pool": ["delay", "reverb", "chorus", "phaser", "distortion", "compressor"],
+    "fx_prob": 0.7,
+    "reverb_prob": 0.4,
+    "delay_prob": 0.6,
+    "envelope": {
+        "attack": [0.005, 0.05],
+        "hold": [0.0, 0.0],
+        "decay": [0.1, 0.4],
+        "sustain": [0.0, 0.3],
+        "release": [0.05, 0.2]
+    },
+    "lfo": {
+        "prob": 0.3,
+        "rate": [0.5, 5.0],
+        "shapes": ["sine", "triangle"],
+        "targets": ["filter"],
+        "amount": [0.1, 0.3]
+    }
+}
+
