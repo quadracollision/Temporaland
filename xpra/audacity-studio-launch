@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export HOME=/srv/audacity-studio
+export XDG_RUNTIME_DIR=/run/audacity-studio
+export DISPLAY=:100
+export LIBGL_ALWAYS_SOFTWARE=1
+
+pids=()
+cleanup() {
+  for pid in "${pids[@]}"; do
+    kill "$pid" 2>/dev/null || true
+  done
+  wait 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
+/usr/bin/Xvfb :100 -screen 0 1280x800x24 -nolisten tcp -ac -noreset &
+pids+=("$!")
+
+for _ in $(seq 1 50); do
+  [[ -S /tmp/.X11-unix/X100 ]] && break
+  sleep 0.1
+done
+[[ -S /tmp/.X11-unix/X100 ]]
+
+/usr/bin/pulseaudio --daemonize=no --exit-idle-time=-1 --log-target=stderr &
+pids+=("$!")
+for _ in $(seq 1 50); do
+  /usr/bin/pactl info >/dev/null 2>&1 && break
+  sleep 0.1
+done
+/usr/bin/pactl info >/dev/null
+/usr/bin/pactl load-module module-null-sink \
+  sink_name=studio \
+  sink_properties=device.description=Temporaman >/dev/null
+/usr/bin/pactl set-default-sink studio
+/usr/bin/pactl set-default-source studio.monitor
+export PULSE_SINK=studio
+
+/usr/bin/openbox --sm-disable &
+pids+=("$!")
+/usr/bin/tint2 -c /etc/audacity-studio/tint2rc &
+pids+=("$!")
+/usr/local/libexec/audacity-studio-open-app audacity >/dev/null
+/usr/bin/x11vnc \
+  -display :100 \
+  -nopw \
+  -rfbport 5900 \
+  -localhost \
+  -forever \
+  -shared \
+  -noxdamage \
+  -xkb \
+  -repeat \
+  -quiet &
+pids+=("$!")
+/usr/bin/python3 /usr/local/libexec/audacity-studio-web &
+pids+=("$!")
+/usr/bin/websockify 127.0.0.1:14500 127.0.0.1:5900 &
+pids+=("$!")
+
+wait -n "${pids[@]}"

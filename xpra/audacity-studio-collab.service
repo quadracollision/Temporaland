@@ -1,0 +1,21 @@
+[Unit]
+Description=Temporaman collaboration sidecar
+After=network.target audacity-studio.service
+
+[Service]
+Type=simple
+User=audacity-studio
+Group=audacity-studio
+WorkingDirectory=/srv/audacity-studio
+ExecStart=/usr/local/libexec/audacity-studio-collab
+Restart=always
+RestartSec=2
+MemoryMax=64M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/srv/audacity-studio
+
+[Install]
+WantedBy=multi-user.target

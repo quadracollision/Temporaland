@@ -1,0 +1,27 @@
+[Unit]
+Description=Temporaman native app launcher
+After=audacity-studio.service
+Requires=audacity-studio.service
+
+[Service]
+Type=simple
+User=audacity-studio
+Group=audacity-studio
+SupplementaryGroups=audio
+Environment=HOME=/srv/audacity-studio
+Environment=DISPLAY=:100
+Environment=XDG_RUNTIME_DIR=/run/audacity-studio
+Environment=PULSE_SINK=studio
+WorkingDirectory=/srv/audacity-studio/projects
+ExecStart=/usr/local/libexec/audacity-studio-apps
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/srv/audacity-studio
+MemoryHigh=180M
+MemoryMax=250M
+
+[Install]
+WantedBy=multi-user.target

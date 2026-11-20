@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "$(id -u)" -eq 0 ]]; then
+  exec runuser -u audacity-studio -- "$0" "$@"
+fi
+if [[ "$(id -un)" != audacity-studio ]]; then
+  printf 'This launcher must run as audacity-studio.\n' >&2
+  exit 77
+fi
+
+export HOME=/srv/audacity-studio
+export XDG_RUNTIME_DIR=/run/audacity-studio
+export DISPLAY=:100
+export PULSE_SINK=studio
+export LIBGL_ALWAYS_SOFTWARE=1
+export QT_X11_NO_MITSHM=1
+
+app="${1:-}"
+arguments=()
+log_file=/dev/null
+process_match=name
+case "$app" in
+  audacity)
+    process=audacity
+    window_class=Audacity
+    executable=/usr/bin/audacity
+    ;;
+  helio)
+    process=helio
+    window_class=helio
+    executable=/usr/local/bin/helio
+    ;;
+  shuriken)
+    process=shuriken
+    window_class=shuriken
+    executable=/usr/local/bin/shuriken
+    ;;
+  hydrogen)
+    process=hydrogen
+    window_class=Hydrogen
+    executable=/usr/bin/hydrogen
+    arguments=(-d pulseaudio --layout tabbed -n)
+    ;;
+  lv2)
+    process=temporaman-lv2
+    window_class=TemporamanLV2
+    executable=/usr/local/bin/temporaman-lv2
+    ;;
+  chipwave)
+    process=chipwave
+    window_class=ChipWave
+    executable=/usr/local/lib/chipwave-studio-0.2.22.0/AppRun
+    ;;
+  figlib)
+    process=figlib-sampler.py
+    process_match=full
+    window_class=FigLibSampler
+    executable=/usr/local/share/temporaman/figlib-sampler/figlib-sampler.py
+    ;;
+  downloader)
+    process=temporaman-dl
+    window_class=TemporamanDownloader
+    executable=/usr/local/libexec/temporaman-downloader
+    ;;
+  *)
+    printf 'Usage: %s audacity|helio|shuriken|hydrogen|lv2|chipwave|figlib|downloader\n' "$0" >&2
+    exit 64
+    ;;
+esac
+
+if [[ ! -x "$executable" ]]; then
+  printf '%s is not installed\n' "$app" >&2
+  exit 69
+fi
+
+exec 9>"$XDG_RUNTIME_DIR/open-$app.lock"
+flock 9
+
+if [[ "$process_match" == full ]]; then
+  pids="$(pgrep -u "$(id -u)" -f "$executable" || true)"
+else
+  pids="$(pgrep -u "$(id -u)" -x "$process" || true)"
+fi
+if [[ -n "$pids" ]]; then
+  while IFS= read -r pid; do
+    [[ -n "$pid" ]] || continue
+    while IFS= read -r window; do
+      [[ -n "$window" ]] || continue
+      if xprop -id "$window" WM_STATE 2>/dev/null | grep -q 'window state'; then
+        xdotool windowmap "$window" 2>/dev/null || true
+        xdotool windowactivate --sync "$window" 2>/dev/null || true
+        printf 'focused\n'
+        exit 0
+      fi
+    done < <(xdotool search --pid "$pid" --class "$window_class" 2>/dev/null || true)
+  done <<<"$pids"
+
+  printf 'running\n'
+  exit 0
+fi
+
+cd /srv/audacity-studio/projects
+mkdir -p "$(dirname "$log_file")"
+nohup "$executable" "${arguments[@]}" 9>&- </dev/null >"$log_file" 2>&1 &
+printf 'started\n'
