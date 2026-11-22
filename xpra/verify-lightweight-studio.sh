@@ -15,7 +15,7 @@ for process in audacity Xvfb x11vnc pulseaudio; do
 done
 if pgrep -u audacity-studio -f audacity-studio-web >/dev/null; then pass 'login/upload/audio server is running'; else fail 'web helper is not running'; fi
 if systemctl is-active --quiet audacity-studio-collab; then pass 'collaboration sidecar is active'; else fail 'collaboration sidecar is inactive'; fi
-if python3 -c "import sys; sys.path.insert(0, '/usr/local/share/temporaman/figlib-sampler/figlib52/src'); from pySynth.routing import EFFECT_DISPATCH; raise SystemExit(len(EFFECT_DISPATCH) != 91)"; then pass 'FigLib has all 91 effects'; else fail 'FigLib effect stack is incomplete'; fi
+if python3 -c "import sys; sys.path.insert(0, '/usr/local/share/temporaman/figlib-sampler/figlib52/src'); from pySynth.routing import EFFECT_DISPATCH; raise SystemExit(len(EFFECT_DISPATCH) != 92)"; then pass 'FigLib has all 92 effects'; else fail 'FigLib effect stack is incomplete'; fi
 if runuser -u audacity-studio -- env XDG_RUNTIME_DIR=/run/audacity-studio pactl list short sinks | grep -q $'studio\t'; then pass 'Temporaman playback device exists'; else fail 'Temporaman playback device is missing'; fi
 if nginx -t >/dev/null 2>&1; then pass 'nginx configuration is valid'; else fail 'nginx configuration is invalid'; fi
 

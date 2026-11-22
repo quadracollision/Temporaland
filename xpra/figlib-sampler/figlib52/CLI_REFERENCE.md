@@ -437,7 +437,7 @@ Applies a master LFO to modulate multiple effects parameters over the course of 
 
 **Syntax:** `rate=Hz,depth=0-1,targets=TYPE:PARAM:AMT;TYPE:PARAM:AMT`
 
-> **Note:** You can modulate **any numeric parameter** listed in the [91 Effect Reference](#91-effect-reference) below.
+> **Note:** You can modulate **any numeric parameter** listed in the [92 Effect Reference](#92-effect-reference) below.
 > *   Target must match the **Effect Name** (e.g. `moog`, `delay`).
 > *   Param pseudo-match the **Parameter Name** (e.g. `cutoff`, `feedback`).
 > *   Non-numeric parameters (modes, types) cannot be modulated.
@@ -643,7 +643,7 @@ You can use these names with `--osc-only` or via scripts.
 
 ---
 
-## 91 Effect Reference
+## 92 Effect Reference
 
 ### Filters
 *   **`filter`** (Standard Biquad) – `cutoff` (Hz), `resonance` (0-1), `gain_db` (-12..12), `filter_type` (lowpass, highpass, bandpass, notch, peaking)

@@ -39,11 +39,11 @@ disable_transparency = 1
 mouse_effects = 1
 
 launcher_item_app = /usr/local/share/applications/temporaman-audacity.desktop
-launcher_item_app = /usr/local/share/applications/temporaman-helio.desktop
-launcher_item_app = /usr/local/share/applications/temporaman-chipwave.desktop
+launcher_item_app = /usr/local/share/applications/temporaman-sunvox.desktop
 launcher_item_app = /usr/local/share/applications/temporaman-figlib.desktop
 launcher_item_app = /usr/local/share/applications/temporaman-shuriken.desktop
 launcher_item_app = /usr/local/share/applications/temporaman-hydrogen.desktop
+launcher_item_app = /usr/local/share/applications/temporaman-openrb.desktop
 launcher_item_app = /usr/local/share/applications/temporaman-downloader.desktop
 launcher_item_app = /usr/local/share/applications/temporaman-upload.desktop
 launcher_item_app = /usr/local/share/applications/temporaman-download-files.desktop

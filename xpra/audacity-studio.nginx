@@ -13,6 +13,12 @@ location = /temporaman/login.html {
     add_header X-Content-Type-Options "nosniff" always;
 }
 
+location = /temporaman/audio-input.js {
+    alias /var/www/temporaman/audio-input.js;
+    add_header Cache-Control "no-cache" always;
+    add_header X-Content-Type-Options "nosniff" always;
+}
+
 location = /temporaman/collab.js {
     alias /var/www/temporaman/collab.js;
     add_header Cache-Control "no-cache" always;
@@ -43,19 +49,6 @@ location = /temporaman/shrine.html {
     error_page 401 =302 /temporaman/login.html;
     alias /var/www/temporaman/shrine.html;
     add_header Cache-Control "no-store" always;
-}
-
-location = /temporaman/synth {
-    return 301 /temporaman/synth/;
-}
-
-location ^~ /temporaman/synth/ {
-    auth_request /temporaman/_auth;
-    error_page 401 =302 /temporaman/login.html;
-    alias /var/www/temporaman/synth/;
-    index index.html;
-    add_header Cache-Control "no-cache" always;
-    add_header X-Content-Type-Options "nosniff" always;
 }
 
 location = /temporaman/upload {
@@ -89,15 +82,6 @@ location = /temporaman/download {
     proxy_send_timeout 3600;
 }
 
-location = /temporaman/launch/helio {
-    auth_request /temporaman/_auth;
-    error_page 401 =302 /temporaman/login.html;
-    proxy_pass http://127.0.0.1:14503/helio;
-    proxy_set_header Cookie $http_cookie;
-    proxy_set_header X-Real-IP $remote_addr;
-    client_max_body_size 1k;
-}
-
 location = /temporaman/launch/downloader {
     auth_request /temporaman/_auth;
     error_page 401 =302 /temporaman/login.html;
@@ -118,6 +102,16 @@ location = /temporaman/collab {
     proxy_read_timeout 86400;
     proxy_send_timeout 86400;
     proxy_buffering off;
+}
+
+location = /temporaman/audio-input {
+    auth_request /temporaman/_auth;
+    proxy_pass http://127.0.0.1:14502/audio-input;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_buffering off;
+    proxy_read_timeout 86400;
 }
 
 location = /temporaman/audio {

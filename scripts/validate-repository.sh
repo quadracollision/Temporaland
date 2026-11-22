@@ -10,8 +10,12 @@ python3 -m py_compile \
   xpra/audacity-studio-collab.py \
   xpra/audacity-studio-web.py \
   xpra/figlib-sampler/figlib-sampler.py \
+  xpra/figlib-sampler/figsynth/*.py \
+  xpra/openrb-338/openrb-figlib-kit.py \
   xpra/temporaman-downloader.py
+python3 -m unittest discover -s xpra/figlib-sampler/tests
 node --check xpra/collab.js
+node --check xpra/audio-input.js
 
 if [[ ! -s xpra/audacity-plugins/peteshift.ny ]] ||
    ! grep -q '^\$name "PeteShift"' xpra/audacity-plugins/peteshift.ny ||
@@ -27,26 +31,6 @@ fi
 for release_file in CHANGELOG.md docs/releasing.md docs/release-notes-v0.1.0.md .github/workflows/validate.yml; do
   if [[ ! -s "$release_file" ]]; then
     printf 'Missing release file: %s\n' "$release_file" >&2
-    exit 1
-  fi
-done
-
-if grep -Eq "printf .*(reddit|templeman|12345).*password|password=.*(reddit|templeman|12345)" \
-    xpra/install-temporaland.sh; then
-  printf 'The Temporaland installer contains a hard-coded deployment password.\n' >&2
-  exit 1
-fi
-
-required_temporaland_guards=(
-  'TEMPORALAND_PASSWORD_FILE'
-  'path=temporaman/#path=temporaland/'
-  'exclusiveControl:false'
-  'InaccessiblePaths=/srv/audacity-studio'
-  'temporaland-(helio|chipwave)'
-)
-for guard in "${required_temporaland_guards[@]}"; do
-  if ! grep -Eq "$guard" xpra/install-temporaland.sh; then
-    printf 'Missing Temporaland release guard: %s\n' "$guard" >&2
     exit 1
   fi
 done

@@ -4,7 +4,7 @@
 
 ## Automated Synthesizer & Sample Generator
 
-A Python-based synthesizer engine with **91 audio effects**, **50+ oscillator types** (including classic drums & percussion), hardware emulations, intelligent genre-based randomization, **Round Robin** variations, **Wavetable Export**, and a powerful CLI.
+A Python-based synthesizer engine with **92 audio effects**, **50+ oscillator types** (including classic drums & percussion), hardware emulations, intelligent genre-based randomization, **Round Robin** variations, **Wavetable Export**, and a powerful CLI.
 
 ---
 
@@ -166,7 +166,7 @@ python run.py --progression "C4E4G4B4|F4A4C5E5|Bb3D4F4A4|Eb4G4Bb4D5" \
 python run.py --fx-list
 ```
 
-Prints all 91 effects organized by category:
+Prints all 92 effects organized by category:
 
 | Category | Count | Effects |
 |---|---|---|
@@ -461,7 +461,7 @@ pySynth/
 ├── run.py                          # Entry point
 └── src/pySynth/
     ├── main.py                     # CLI argument parsing + routing
-    ├── synth.py                    # FiggyGenSynth engine + EFFECT_DISPATCH (91 effects)
+    ├── synth.py                    # FiggyGenSynth engine + EFFECT_DISPATCH (92 effects)
     ├── oscillator.py               # Oscillator engine (31 waveform types)
     ├── envelope.py                 # DAHDSR envelope generator
     ├── modulation.py               # LFO (9 shapes) + modulation matrix

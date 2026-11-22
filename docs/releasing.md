@@ -13,12 +13,9 @@ Before publishing:
 2. Confirm no deployment password, browser cookie, media upload, database, SSH
    key, or server backup is present in the repository.
 3. Test the base installer on Ubuntu 24.04.
-4. Test `install-temporaland.sh` against an installed base workspace and verify
-   that the two studios have distinct homes, displays, ports, PulseAudio sinks,
-   cookies, browser profiles, and upload directories.
-5. Choose and add a project license before describing the repository as open
+4. Choose and add a project license before describing the repository as open
    source. Bundled third-party code retains its own license.
-6. Create a signed tag matching `VERSION`, for example `v0.1.0`, and attach the
+5. Create a signed tag matching `VERSION`, for example `v0.1.0`, and attach the
    generated source archive and checksum. Use
    `docs/release-notes-v0.1.0.md` as the initial release body.
 

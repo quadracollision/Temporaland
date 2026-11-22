@@ -5,3 +5,5 @@ pcm.!default {
 ctl.!default {
   type pulse
 }
+
+</srv/audacity-studio/audio-inputs/asoundrc-inputs.conf>

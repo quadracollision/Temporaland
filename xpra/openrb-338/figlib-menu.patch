@@ -1,0 +1,530 @@
+diff --git a/crates/orb-cli/src/render.rs b/crates/orb-cli/src/render.rs
+index 2d18b6b..a085632 100644
+--- a/crates/orb-cli/src/render.rs
++++ b/crates/orb-cli/src/render.rs
+@@ -7,7 +7,7 @@ use std::sync::Arc;
+ 
+ use orb_engine::frame::export;
+ use orb_engine::frame::{Devices, Engine};
+-use orb_engine::samples::SampleSet;
++use orb_engine::samples::{Sample, SampleSet};
+ use orb_engine::song::{DrumPattern, Song};
+ use orb_engine::tables::Tables;
+ 
+@@ -146,7 +146,19 @@ pub fn load_mod(path: &Path, builtin: &SampleSet) -> Result<SampleSet, Fail> {
+     let loaded = rbm
+         .load_samples(&table, builtin)
+         .map_err(|e| fail(1, format!("{}: {e}", path.display())))?;
+-    Ok(loaded.set)
++    let mut tb303 = [None, None];
++    for (index, name) in ["FIG303A.aif", "FIG303B.aif"].into_iter().enumerate() {
++        let Some(chunk) = rbm.find(name) else {
++            continue;
++        };
++        let bytes = rbm
++            .file(chunk, &table)
++            .map_err(|e| fail(1, format!("{}: {e}", path.display())))?;
++        let sample = Sample::from_aiff(&bytes)
++            .map_err(|e| fail(1, format!("{}: {name}: {e}", path.display())))?;
++        tb303[index] = Some(Arc::new(sample));
++    }
++    Ok(loaded.set.with_tb303(tb303))
+ }
+ 
+ /// Renders songs, each in a new engine with every device, sharing the tables and the sample
+@@ -186,28 +198,23 @@ impl Renderer {
+         Ok(samples)
+     }
+ 
+-    /// The drum samples `song` renders with: its mod's on top of the built-in kit, or the
+-    /// built-in kit, or none when no drum machine plays.
++    /// The samples `song` renders with: its mod's on top of the built-in kit, or the built-in
++    /// kit. A custom mod is loaded even for a 303-only song because downstream mods may provide
++    /// the optional FIG303A/FIG303B sample oscillators.
+     pub fn samples(&mut self, label: &str, song: &Song) -> Result<Option<Arc<SampleSet>>, Fail> {
+         // The mod is resolved for every song, so that a missing one is an error even when no
+         // drum machine plays (and then needs no key file: nothing of it is read).
+         let kit = mods::resolve(&self.mods, label, &song.mod_name)?;
+-        // The drum samples are given only to a song that plays a drum machine; a 303-only song
+-        // renders without them (its drum machines play no step, so the silent placeholders the
+-        // engine uses without samples are exact), and a mod it names is never read.
+-        let samples = if drums_playing(song).is_empty() {
+-            None
+-        } else {
+-            let builtin = rbm::standard::builtin_samples();
+-            match kit {
+-                Kit::Standard => Some(builtin),
+-                Kit::Mod(path) => {
+-                    if !self.mod_sets.contains_key(&path) {
+-                        let set = load_mod(&path, &builtin)?;
+-                        self.mod_sets.insert(path.clone(), Arc::new(set));
+-                    }
+-                    Some(self.mod_sets[&path].clone())
++        let samples = match kit {
++            Kit::Standard if drums_playing(song).is_empty() => None,
++            Kit::Standard => Some(rbm::standard::builtin_samples()),
++            Kit::Mod(path) => {
++                if !self.mod_sets.contains_key(&path) {
++                    let builtin = rbm::standard::builtin_samples();
++                    let set = load_mod(&path, &builtin)?;
++                    self.mod_sets.insert(path.clone(), Arc::new(set));
+                 }
++                Some(self.mod_sets[&path].clone())
+             }
+         };
+         Ok(samples)
+diff --git a/crates/orb-engine/src/frame/mod.rs b/crates/orb-engine/src/frame/mod.rs
+index 81f068a..df4b73c 100644
+--- a/crates/orb-engine/src/frame/mod.rs
++++ b/crates/orb-engine/src/frame/mod.rs
+@@ -281,6 +281,13 @@ pub trait ChannelDevice: SongDevice {
+     /// `+0x18DC`) becomes `samples`. The old table and the samples the voices held go into
+     /// `retired`. The 303s and the placeholders have no table and do nothing.
+     fn set_samples(&mut self, _samples: &Arc<SampleSet>, _retired: &mut Retired) {}
++    /// Downstream extension: replaces one TB-303's optional looping sample oscillator.
++    fn set_oscillator_sample(
++        &mut self,
++        _sample: Option<Arc<crate::samples::Sample>>,
++        _retired: &mut Retired,
++    ) {
++    }
+     /// Not in the original (task-200, the plugin's note mode, `docs/plugin.md` section 9): a
+     /// MIDI note-on (`velocity` 1..127) plays the device through its own step machinery, by the
+     /// note mapping of `docs/midi.md` section 5. Only for a stopped song ([`Engine::live_note`]).
+@@ -494,6 +501,9 @@ impl Devices {
+         d.comp = Box::new(crate::comp::Compressor::new());
+         d.delay = Box::new(crate::delay::Delay::new(d.process.clone()));
+         if let Some(s) = samples {
++            let mut retired = Retired::default();
++            d.channels[0].set_oscillator_sample(s.tb303(0), &mut retired);
++            d.channels[1].set_oscillator_sample(s.tb303(1), &mut retired);
+             d.channels[2] = Box::new(crate::tr808::Tr808::new(s.clone(), d.process.clone()));
+             d.channels[3] = Box::new(crate::tr909::Tr909::new(s, d.process.clone()));
+         }
+@@ -1630,6 +1640,8 @@ impl Engine {
+     /// stay as they are. What the drum machines let go of goes into `retired`.
+     pub fn set_samples(&mut self, samples: &Arc<SampleSet>, retired: &mut Retired) {
+         let d = &mut self.frame.devices;
++        d.channels[0].set_oscillator_sample(samples.tb303(0), retired);
++        d.channels[1].set_oscillator_sample(samples.tb303(1), retired);
+         d.channels[2].set_samples(samples, retired);
+         d.channels[3].set_samples(samples, retired);
+     }
+diff --git a/crates/orb-engine/src/samples.rs b/crates/orb-engine/src/samples.rs
+index fd9a20f..5a8a093 100644
+--- a/crates/orb-engine/src/samples.rs
++++ b/crates/orb-engine/src/samples.rs
+@@ -118,6 +118,7 @@ impl Sample {
+ #[derive(Debug, Clone, PartialEq, Eq)]
+ pub struct SampleSet {
+     samples: Vec<Arc<Sample>>,
++    tb303: [Option<Arc<Sample>>; 2],
+ }
+ 
+ impl SampleSet {
+@@ -139,7 +140,10 @@ impl SampleSet {
+                 Sample::from_aiff(r.data).map_err(|e| SampleError::Resource(id, Box::new(e)))?,
+             ));
+         }
+-        Ok(SampleSet { samples })
++        Ok(SampleSet {
++            samples,
++            tb303: [None, None],
++        })
+     }
+ 
+     /// The sample with resource ID `id` (1000..=1045).
+@@ -166,6 +170,7 @@ impl SampleSet {
+         assert_eq!(samples.len(), COUNT);
+         SampleSet {
+             samples: samples.into_iter().map(Arc::new).collect(),
++            tb303: [None, None],
+         }
+     }
+ 
+@@ -176,7 +181,21 @@ impl SampleSet {
+     /// If there are not exactly [`COUNT`] samples.
+     pub fn from_shared(samples: Vec<Arc<Sample>>) -> SampleSet {
+         assert_eq!(samples.len(), COUNT);
+-        SampleSet { samples }
++        SampleSet {
++            samples,
++            tb303: [None, None],
++        }
++    }
++
++    /// Adds the two optional sample oscillators used by OpenRB's downstream Fig303 extension.
++    pub fn with_tb303(mut self, samples: [Option<Arc<Sample>>; 2]) -> SampleSet {
++        self.tb303 = samples;
++        self
++    }
++
++    /// The optional looping sample oscillator for TB-303 `index`.
++    pub fn tb303(&self, index: usize) -> Option<Arc<Sample>> {
++        self.tb303.get(index).and_then(Clone::clone)
+     }
+ 
+     /// TR-808 sample `i` (an index into [`NAMES_808`]).
+diff --git a/crates/orb-engine/src/tb303.rs b/crates/orb-engine/src/tb303.rs
+index 08cdfd5..82a3f16 100644
+--- a/crates/orb-engine/src/tb303.rs
++++ b/crates/orb-engine/src/tb303.rs
+@@ -21,7 +21,10 @@ mod note_tests;
+ #[cfg(test)]
+ mod tests;
+ 
++use std::sync::Arc;
++
+ use crate::frame::{Block, BlockContext, ChannelDevice, Gate, GateClock, SongDevice, gate_arm};
++use crate::samples::{Retired, Sample};
+ use crate::seq::TrackMut;
+ use crate::tables::Tables;
+ 
+@@ -134,6 +137,8 @@ const RAMP: f64 = f64::from_bits(0x3FA0_0000_0000_0000);
+ const PHASE_MAX: f32 = 1.0;
+ /// ... by `flt_10153BCC`.
+ const PHASE_WRAP: f32 = 2.0;
++/// The TB-303 pitch-table index whose oscillator frequency is middle C (MIDI C4).
++const SAMPLE_ROOT_PITCH: usize = 4_608;
+ /// `flt_10153BD0`: the DC blocker's feedback.
+ const DC: f32 = f32::from_bits(0x3F7C_60E3); // 0.985853374
+ /// `flt_10153BD4`: the square wave's threshold, `flt_10153BD8`/`flt_10153BDC` its levels.
+@@ -175,6 +180,7 @@ struct Coefs {
+ #[derive(Debug, Clone, Copy, PartialEq)]
+ struct Voice {
+     ph: f64,
++    sample_pos: f64,
+     s: f64,
+     y1: f64,
+     y2: f64,
+@@ -186,18 +192,40 @@ impl Voice {
+     /// loop): the phase step and wrap, the oscillator, `s = c3*s + x`,
+     /// `y = (s*g + y1*c0) - y2*c1`, `o = (y - y1) + o*DC`; the output is `f32(o)`.
+     #[inline]
+-    fn sample(&mut self, inc: f64, square: bool, k: &Coefs) -> f32 {
+-        let mut ph = self.ph + inc;
+-        if ph > PHASE_MAX as f64 {
+-            ph -= PHASE_WRAP as f64;
+-        }
+-        self.ph = ph;
+-        let x = if !square {
+-            ph
+-        } else if ph <= SQ_THRESH as f64 {
+-            SQ_LO as f64
++    fn sample(
++        &mut self,
++        inc: f64,
++        square: bool,
++        k: &Coefs,
++        sample: Option<&Sample>,
++        sample_root_inc: f64,
++    ) -> f32 {
++        let x = if let Some(sample) = sample {
++            let audio = sample.audio();
++            if audio.is_empty() {
++                0.0
++            } else {
++                self.sample_pos = (self.sample_pos + inc / sample_root_inc) % audio.len() as f64;
++                let left = self.sample_pos.floor() as usize;
++                let right = (left + 1) % audio.len();
++                let fraction = self.sample_pos - left as f64;
++                let a = audio[left] as f64 / 32768.0;
++                let b = audio[right] as f64 / 32768.0;
++                a + (b - a) * fraction
++            }
+         } else {
+-            SQ_HI as f64
++            let mut ph = self.ph + inc;
++            if ph > PHASE_MAX as f64 {
++                ph -= PHASE_WRAP as f64;
++            }
++            self.ph = ph;
++            if !square {
++                ph
++            } else if ph <= SQ_THRESH as f64 {
++                SQ_LO as f64
++            } else {
++                SQ_HI as f64
++            }
+         };
+         self.s = self.s * k.c3 + x;
+         let y = (self.s * k.g + self.y1 * k.c0) - self.y2 * k.c1;
+@@ -236,6 +264,9 @@ pub struct Tb303 {
+     pub slide: bool,
+     /// `+0xCA4`: the oscillator phase, -1..1.
+     pub phase: f32,
++    /// Downstream extension: the optional looping sample oscillator and its fractional frame.
++    sample: Option<Arc<Sample>>,
++    sample_pos: f64,
+     /// `+0xCA8`: the envelope (1 at note-on, decays by `env_decay`).
+     pub env: f32,
+     /// `+0xCAC`: the envelope decay per control step.
+@@ -309,6 +340,8 @@ impl Tb303 {
+             retrig: false,
+             slide: false,
+             phase: 0.0,
++            sample: None,
++            sample_pos: 0.0,
+             env: 0.0,
+             env_decay: 0.0,
+             pitch_target: 0,
+@@ -447,6 +480,7 @@ impl Tb303 {
+             if !self.slide {
+                 self.env = 1.0;
+                 self.retrig = true;
++                self.sample_pos = 0.0;
+             }
+         }
+         // 0x10023E61: ((tune + (int16)(note + 12*up - 12*down)) * 64 + 3072) * 16
+@@ -490,6 +524,7 @@ impl Tb303 {
+     fn voice(&self) -> Voice {
+         Voice {
+             ph: self.phase as f64,
++            sample_pos: self.sample_pos,
+             s: self.s as f64,
+             y1: self.y1 as f64,
+             y2: self.y2 as f64,
+@@ -499,6 +534,7 @@ impl Tb303 {
+ 
+     fn store_voice(&mut self, v: &Voice) {
+         self.phase = st(v.ph);
++        self.sample_pos = v.sample_pos;
+         self.s = st(v.s);
+         self.y1 = st(v.y1);
+         self.y2 = st(v.y2);
+@@ -564,10 +600,12 @@ impl Tb303 {
+             c3: k3,
+         };
+         let square = self.live[WAVEFORM] != 0;
++        let sample = self.sample.as_deref();
++        let sample_root_inc = t.tb303_pitch[SAMPLE_ROOT_PITCH] as f64;
+         let mut v = self.voice();
+         for pair in bus.as_chunks_mut::<2>().0 {
+-            pair[0] = v.sample(inc, square, &k);
+-            pair[1] = v.sample(inc, square, &k);
++            pair[0] = v.sample(inc, square, &k, sample, sample_root_inc);
++            pair[1] = v.sample(inc, square, &k, sample, sample_root_inc);
+             k.c0 += d0;
+             k.c1 += d1;
+             k.g += d2;
+@@ -597,6 +635,8 @@ impl Tb303 {
+         let decay = self.env_decay as f64;
+         let row = &t.tb303_filter[(self.live[RESONANCE] >> 4) as usize];
+         let square = self.live[WAVEFORM] != 0;
++        let sample = self.sample.as_deref();
++        let sample_root_inc = t.tb303_pitch[SAMPLE_ROOT_PITCH] as f64;
+         let mut v = self.voice();
+         for quad in bus.as_chunks_mut::<4>().0 {
+             // 0x100240DD
+@@ -615,7 +655,7 @@ impl Tb303 {
+                 c3: f[3] as f64,
+             };
+             for o in quad.iter_mut() {
+-                *o = v.sample(inc, square, &k);
++                *o = v.sample(inc, square, &k, sample, sample_root_inc);
+             }
+         }
+         // 0x10024841
+@@ -750,6 +790,7 @@ impl SongDevice for Tb303 {
+         self.env_decay = 0.0;
+         self.env = 0.0;
+         self.phase = 0.0;
++        self.sample_pos = 0.0;
+         self.cs2 = 0.5;
+         self.cs1 = 0.5;
+         self.gate_off = -1;
+@@ -879,6 +920,14 @@ impl ChannelDevice for Tb303 {
+         }
+     }
+ 
++    fn set_oscillator_sample(&mut self, sample: Option<Arc<Sample>>, retired: &mut Retired) {
++        if let Some(old) = self.sample.take() {
++            let _ = retired.keep_sample(old);
++        }
++        self.sample = sample;
++        self.sample_pos = 0.0;
++    }
++
+     /// Slot 14, 0x10023F10.
+     fn process(&mut self, bus: &mut Block, ctx: &BlockContext) {
+         if self.vintage {
+diff --git a/crates/orb-engine/src/tb303/tests.rs b/crates/orb-engine/src/tb303/tests.rs
+index 463f1a9..931400f 100644
+--- a/crates/orb-engine/src/tb303/tests.rs
++++ b/crates/orb-engine/src/tb303/tests.rs
+@@ -269,3 +269,37 @@ fn a_note_sounds_in_both_models() {
+         assert_eq!(d.retrig, vintage);
+     }
+ }
++
++#[test]
++fn sample_oscillator_retriggers_and_changes_the_voice() {
++    let t = Tables::new();
++    let ctx = BlockContext {
++        tables: &t,
++        meter_index: 0,
++        tempo: 120_000,
++        tick: 0,
++        stack_word: None,
++    };
++    let mut stock = Tb303::new();
++    stock.note_on(NOTE);
++    let mut stock_bus = [0.0; BLOCK];
++    stock.process(&mut stock_bus, &ctx);
++
++    let mut sampled = Tb303::new();
++    let oscillator = Arc::new(Sample::from_audio(&[
++        32767, 24000, 8000, -8000, -24000, -32768, -12000, 12000,
++    ]));
++    sampled.set_oscillator_sample(Some(oscillator), &mut Retired::default());
++    sampled.sample_pos = 5.0;
++    sampled.note_on(NOTE);
++    assert_eq!(sampled.sample_pos, 0.0);
++    let mut sampled_bus = [0.0; BLOCK];
++    sampled.process(&mut sampled_bus, &ctx);
++    assert_ne!(sampled_bus, stock_bus);
++    assert!(sampled_bus.iter().any(|value| value.abs() > 1e-6));
++
++    sampled.sample_pos = 5.0;
++    sampled.slide = true;
++    sampled.note_on(NOTE);
++    assert_eq!(sampled.sample_pos, 5.0);
++}
+diff --git a/crates/orb-ui/src/app.rs b/crates/orb-ui/src/app.rs
+index 182a698..b617286 100644
+--- a/crates/orb-ui/src/app.rs
++++ b/crates/orb-ui/src/app.rs
+@@ -8,7 +8,7 @@
+ 
+ use std::path::PathBuf;
+ use std::sync::Arc;
+-use std::time::Duration;
++use std::time::{Duration, Instant, SystemTime};
+ 
+ use orb_engine::samples::SampleSet;
+ 
+@@ -162,6 +162,9 @@ pub struct App {
+     pub(crate) after_save: Option<Then>,
+     pub(crate) export: Option<Job>,
+     pub(crate) mod_list: Option<Result<Vec<ModEntry>, String>>,
++    /// Downstream FigLib extension: the active mod's last observed replacement time.
++    pub(crate) active_mod_stamp: Option<(PathBuf, SystemTime)>,
++    pub(crate) active_mod_checked: Instant,
+     /// Whether a mod file has a `Demo.rbs`, for the file last asked (the Mods menu's item).
+     pub(crate) demo_cache: Option<(PathBuf, bool)>,
+     /// The splash picture of the kit last shown in the 808's mod window (`App::mod_view`).
+@@ -243,6 +246,8 @@ impl App {
+             after_save: None,
+             export: None,
+             mod_list: None,
++            active_mod_stamp: None,
++            active_mod_checked: Instant::now() - Duration::from_secs(1),
+             demo_cache: None,
+             splash: None,
+             info_open: false,
+@@ -370,6 +375,7 @@ impl App {
+ impl eframe::App for App {
+     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
+         egui_extras::install_image_loaders(ui.ctx());
++        self.reload_rebuilt_mod();
+         self.close_check(&ui.ctx().clone());
+         self.show(ui);
+         self.screenshot(ui.ctx());
+diff --git a/crates/orb-ui/src/menu.rs b/crates/orb-ui/src/menu.rs
+index 61f8a73..b1976c3 100644
+--- a/crates/orb-ui/src/menu.rs
++++ b/crates/orb-ui/src/menu.rs
+@@ -94,6 +94,8 @@ pub enum Cmd {
+     RefreshMods,
+     /// "Info" of the Mods menu: the current mod's splash and details (task-106).
+     ModInfo,
++    /// Open the Temporaman FigLib patch-to-mod kit builder.
++    FigLibKit,
+     ToggleVintage,
+     /// "Play Mod Startup Sound" of the Options menu (the original's Edit > Preferences).
+     ToggleStartupSound,
+@@ -181,6 +183,47 @@ pub struct Job {
+ impl App {
+     // ---- the Mods folder ----------------------------------------------------------------
+ 
++    /// Reloads an active FigLib mod after the builder atomically replaces it. Older generated
++    /// paths migrate to the stable file on the first rebuild.
++    pub fn reload_rebuilt_mod(&mut self) {
++        if self.active_mod_checked.elapsed() < std::time::Duration::from_millis(500) {
++            return;
++        }
++        self.active_mod_checked = std::time::Instant::now();
++        let Kit::Mod(path) = &self.doc.kit else {
++            self.active_mod_stamp = None;
++            return;
++        };
++        let mut path = path.clone();
++        let stamp = match std::fs::metadata(&path).and_then(|m| m.modified()) {
++            Ok(stamp) => stamp,
++            Err(_)
++                if path.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
++                    matches!(n, ".figlib-generated-a.rbm" | ".figlib-generated-b.rbm")
++                }) =>
++            {
++                let stable = path.with_file_name("FigLib Generated.rbm");
++                let Ok(stamp) = std::fs::metadata(&stable).and_then(|m| m.modified()) else {
++                    return;
++                };
++                path = stable;
++                stamp
++            }
++            Err(_) => return,
++        };
++        let changed = self
++            .active_mod_stamp
++            .as_ref()
++            .is_some_and(|(old_path, old_stamp)| old_path == &path && old_stamp != &stamp);
++        self.active_mod_stamp = Some((path.clone(), stamp));
++        if changed {
++            self.use_kit_inner(Kit::Mod(path));
++            if self.batch.as_ref().is_none_or(Vec::is_empty) {
++                self.status = Some("Reloaded rebuilt FigLib kit".to_string());
++            }
++        }
++    }
++
+     /// The options `mods::resolve` and the Mods menu look for mods with: the settings' Mods
+     /// folder first, then `ORB_MOD_DIR` and the default places (`ModOpts::mod_dir`).
+     pub fn mod_opts(&self) -> ModOpts {
+@@ -873,9 +916,6 @@ impl App {
+                 }
+             },
+         };
+-        if kit == self.doc.kit && name == self.doc.mod_name {
+-            return;
+-        }
+         let samples = match self.kit_samples(&kit) {
+             Ok(s) => s,
+             Err(e) => {
+@@ -972,6 +1012,15 @@ impl App {
+             Cmd::DemoSong => self.demo_song(),
+             Cmd::RefreshMods => self.refresh_mods_reported(),
+             Cmd::ModInfo => self.show_mod_info(),
++            Cmd::FigLibKit => {
++                if let Err(error) =
++                    std::process::Command::new("/usr/local/libexec/audacity-studio-open-app")
++                        .arg("openrb-kit")
++                        .spawn()
++                {
++                    self.fail(format!("Could not open the FigLib kit builder: {error}"));
++                }
++            }
+             Cmd::ToggleVintage => {
+                 let on = !self.panel.vintage;
+                 self.panel.set_vintage(on);
+@@ -1269,6 +1318,10 @@ impl App {
+                     ui.label(RichText::new(e).color(INK_DIM));
+                 }
+             }
++            if !plugin && item(ui, "FigLib Kit...", None) {
++                *cmd = Some(Cmd::FigLibKit);
++                ui.close();
++            }
+             ui.separator();
+             if item(ui, "Choose file...", None) {
+                 *cmd = Some(Cmd::ChooseModFile);

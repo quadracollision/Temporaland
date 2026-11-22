@@ -7,11 +7,24 @@ transfer, and optional exclusive-control handoff.
 
 ## Highlights
 
-- Audacity, FigSynth2, Hydrogen, Helio, Shuriken, and ChipWave launch inside one
+- Audacity, FigSynth2, Hydrogen, Shuriken, SunVox, and OpenRB-338 launch inside one
   noVNC desktop.
 - FigSynth2 exposes the FigLib v52 oscillator engine, 91-effect rack, assignable
   Shape macros, chord keyboard, realtime auditioning, reset-to-factory behavior,
   and WAV/MP3 export.
+- Its oscillator editor supports reliable source removal, displays a lightweight
+  waveform for the selected source, and represents loaded audio as a sample oscillator.
+  Oscillator knob motion updates that thumbnail in place while heavier audio and
+  Instrument-waveform work waits until the drag pauses.
+- FigSynth2's shared playback-loop count controls live notes, chords, and
+  arpeggios plus arpeggio export. Zero means infinite live playback and one
+  exported pass. The chord/custom-chord arpeggiator records piano-key clicks as
+  an explicit order and persists it in reusable `.fig` patches.
+- OpenRB-338 keeps its stock kit and adds an OpenRB-owned 45-slot FigLib kit
+  builder. It opens the unchanged FigSynth2 editor for authoring `.fig` patches,
+  renders assigned patches offline, and packs the result as a real `.rbm` mod.
+- Application launchers use original upstream icons; FigSynth2 uses the supplied
+  fig artwork.
 - PeteShift 2.0 by Jacob Pereira fits the complete clip under a time selection
   to that selection's duration. It supports pitch-preserving tempo change and
   tape-speed pitch movement, including shrinking without cutting the clip.

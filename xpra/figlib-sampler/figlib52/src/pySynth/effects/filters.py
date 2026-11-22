@@ -122,6 +122,34 @@ def apply_filter(audio, filter_type='lowpass', cutoff=1000.0, resonance=0.5,
     return _biquad(audio, b, a)
 
 
+def apply_eq12(audio, gain_31_db=0.0, gain_63_db=0.0,
+               gain_125_db=0.0, gain_250_db=0.0,
+               gain_500_db=0.0, gain_1k_db=0.0,
+               gain_2k_db=0.0, gain_4k_db=0.0,
+               gain_8k_db=0.0, gain_12k_db=0.0,
+               gain_16k_db=0.0, gain_20k_db=0.0,
+               sample_rate=44100, **kwargs):
+    """Twelve-band graphic EQ with fixed centers and ±24 dB per band."""
+    bands = (
+        (31.25, gain_31_db), (63.0, gain_63_db),
+        (125.0, gain_125_db), (250.0, gain_250_db),
+        (500.0, gain_500_db), (1000.0, gain_1k_db),
+        (2000.0, gain_2k_db), (4000.0, gain_4k_db),
+        (8000.0, gain_8k_db), (12000.0, gain_12k_db),
+        (16000.0, gain_16k_db), (20000.0, gain_20k_db),
+    )
+    output = np.asarray(audio, dtype=np.float64)
+    nyquist = sample_rate / 2.0
+    for frequency, gain_db in bands:
+        gain_db = max(-24.0, min(24.0, float(gain_db)))
+        if abs(gain_db) < 1e-12:
+            continue
+        frequency = max(20.0, min(frequency, nyquist - 100.0))
+        b, a = _biquad_coeffs('peaking', frequency, 1.4, gain_db, sample_rate)
+        output = _biquad(output, b, a)
+    return output
+
+
 def apply_comb(audio, delay_ms=5.0, feedback=0.7, mix=0.5,
                sample_rate=44100, **kwargs):
     """

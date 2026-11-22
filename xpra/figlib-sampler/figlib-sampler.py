@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
 """FigSynth2: an easy instrument front-end for the complete FigLib engine."""
 import inspect
-import json
 import math
 import os
-import random
 import copy
-import subprocess
 import sys
-import tempfile
 import threading
-import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIGLIB_ROOT = os.path.join(HERE, "figlib52")
+sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(FIGLIB_ROOT, "src"))
 
 import numpy as np
@@ -26,631 +22,33 @@ from pySynth.oscillator import Oscillator
 from pySynth.routing import EFFECT_DISPATCH
 from pySynth.synth import FiggyGenSynth
 
+from figsynth.audio_logic import AudioLogicMixin
+from figsynth.effect_rack import EffectRack
+from figsynth.knob import Knob
+from figsynth.music import CHORDS, KEY_NOTES, NOTE_NAMES, note_name, notes_label
+from figsynth.oscillators import (
+    OscillatorForm,
+    default_oscillator,
+    remove_oscillator_config,
+    sample_oscillator,
+)
+from figsynth.parameters import (
+    macro_to_parameter,
+    numeric_defaults,
+    parameter_control_spec,
+    parameter_range,
+    parameter_to_macro,
+)
+from figsynth.piano_roll import PianoRoll
+from figsynth.piano_logic import PianoRollLogicMixin
+from figsynth.patches import PatchLogicMixin
+from figsynth.waveform import Waveform
+
 RATE = 44100
 IMPORTS = os.environ.get("TEMPORAMAN_IMPORTS", "/srv/audacity-studio/imports")
 EXPORTS = os.environ.get("TEMPORAMAN_EXPORTS", "/srv/audacity-studio/exports")
 PULSE_SINK = os.environ.get("PULSE_SINK", "studio")
-KEY_NOTES = {
-    "z": 48, "s": 49, "x": 50, "d": 51, "c": 52, "v": 53, "g": 54,
-    "b": 55, "h": 56, "n": 57, "j": 58, "m": 59, ",": 60,
-    "q": 60, "2": 61, "w": 62, "3": 63, "e": 64, "r": 65, "5": 66,
-    "t": 67, "6": 68, "y": 69, "7": 70, "u": 71, "i": 72,
-}
-NOTE_NAMES = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
-CHORDS = {
-    "Major": (0, 4, 7),
-    "Minor": (0, 3, 7),
-    "Major 6": (0, 4, 7, 9),
-    "Minor 6": (0, 3, 7, 9),
-    "6/9": (0, 4, 7, 9, 14),
-    "Major 7": (0, 4, 7, 11),
-    "Minor 7": (0, 3, 7, 10),
-    "Minor major 7": (0, 3, 7, 11),
-    "Dominant 7": (0, 4, 7, 10),
-    "Major 9": (0, 4, 7, 11, 14),
-    "Diminished": (0, 3, 6),
-    "Diminished 7": (0, 3, 6, 9),
-    "Half-diminished 7": (0, 3, 6, 10),
-    "Augmented": (0, 4, 8),
-    "Augmented 7": (0, 4, 8, 10),
-    "Sus 2": (0, 2, 7),
-    "Sus 4": (0, 5, 7),
-    "7 sus 4": (0, 5, 7, 10),
-    "Power": (0, 7, 12),
-    "Add 9": (0, 4, 7, 14),
-    "Minor add 9": (0, 3, 7, 14),
-    "Minor 9": (0, 3, 7, 10, 14),
-    "Dominant 9": (0, 4, 7, 10, 14),
-    "Major 11": (0, 4, 7, 11, 14, 17),
-    "Minor 11": (0, 3, 7, 10, 14, 17),
-    "Dominant 11": (0, 4, 7, 10, 14, 17),
-    "Major 13": (0, 4, 7, 11, 14, 21),
-    "Minor 13": (0, 3, 7, 10, 14, 21),
-    "Dominant 13": (0, 4, 7, 10, 14, 21),
-    "Quartal": (0, 5, 10, 15),
-    "Quintal": (0, 7, 14, 21),
-}
-
-
-def note_name(midi):
-    return f"{NOTE_NAMES[midi % 12]}{midi // 12 - 1}"
-
-
-def notes_label(notes):
-    return " + ".join(note_name(int(round(n))) for n in notes)
-
-
-def numeric_defaults(func):
-    values = {}
-    for p in inspect.signature(func).parameters.values():
-        if p.name in ("audio", "sample_rate", "kwargs") or p.default is inspect.Parameter.empty:
-            continue
-        values[p.name] = p.default
-    return values
-
-
-def parameter_range(name, default):
-    """Useful macro ranges for FigLib's heterogeneous numeric parameters."""
-    key = name.lower()
-    if key in ("cutoff", "freq", "frequency", "high_freq", "low_freq"):
-        return (20.0, 20000.0, "log")
-    if "threshold" in key or key in ("ceiling",):
-        return (-60.0, 0.0, "linear")
-    if "semitone" in key or "interval" in key or "detune" in key:
-        return (-24.0, 24.0, "linear")
-    if "ratio" in key:
-        return (1.0, 20.0, "linear")
-    if any(word in key for word in ("mix", "depth", "feedback", "amount", "resonance",
-                                     "sustain", "warmth", "width", "drive", "gain",
-                                     "tone", "presence", "bias", "position", "height",
-                                     "density", "spray", "strike", "crackle", "hiss")):
-        return (0.0, 1.0, "linear")
-    if any(word in key for word in ("time", "decay", "release", "attack", "delay")):
-        high = max(1.0, float(default) * 4.0) if isinstance(default, (int, float)) else 5.0
-        return (0.0, min(10.0, high), "linear")
-    if isinstance(default, (int, float)):
-        high = max(1.0, abs(float(default)) * 2.0)
-        low = -high if float(default) < 0 else 0.0
-        return (low, high, "linear")
-    return (0.0, 1.0, "linear")
-
-
-def macro_to_parameter(value, limits):
-    low, high, scale = limits
-    if scale == "log":
-        return low * ((high / low) ** value)
-    return low + (high - low) * value
-
-
-def parameter_to_macro(value, limits):
-    low, high, scale = limits
-    value = max(low, min(high, float(value)))
-    if scale == "log":
-        return math.log(value / low) / math.log(high / low)
-    return (value - low) / max(1e-12, high - low)
-
-
-ENUM_OPTIONS = {
-    ("ams_reverb", "program"): ("nonlin", "ambience", "plate"),
-    ("buchla_lpg", "mode"): ("filter", "vca", "both"),
-    ("distortion", "dist_type"): (
-        "tanh", "hard_clip", "soft_clip", "sine_fold",
-        "rectify", "half_rectify", "waveshape"),
-    ("filter", "filter_type"): (
-        "lowpass", "highpass", "bandpass", "notch",
-        "peaking", "low_shelf", "high_shelf", "allpass"),
-    ("formant", "vowel"): ("a", "e", "i", "o", "u"),
-    ("haas", "side"): ("left", "right"),
-    ("la2a", "mode"): ("compress", "limit"),
-    ("obxa", "mode"): ("lowpass", "bandpass", "highpass"),
-    ("sem", "mode"): ("lowpass", "highpass", "bandpass", "notch"),
-}
-
-INTEGER_BOUNDS = {
-    "bit_depth": (2, 16), "sample_rate_reduction": (1, 16),
-    "voices": (1, 8), "stages": (1, 12), "repeats": (1, 16),
-    "mode": (0, 4), "speed": (0, 2), "ratio": (1, 20),
-}
-
-
-def parameter_control_spec(name, default):
-    key = name.lower()
-    if isinstance(default, bool):
-        return {"kind": "bool"}
-    if not isinstance(default, (int, float)):
-        return {"kind": "text"}
-    if isinstance(default, int) and key in INTEGER_BOUNDS:
-        low, high = INTEGER_BOUNDS[key]
-        return {"kind": "knob", "low": low, "high": high, "integer": True}
-    bounded_words = (
-        "mix", "depth", "feedback", "amount", "resonance", "sustain",
-        "warmth", "width", "drive", "gain", "tone", "presence", "bias",
-        "position", "height", "density", "spray", "strike", "crackle",
-        "hiss", "cutoff", "freq", "threshold", "ceiling", "ratio",
-        "time", "decay", "release", "attack", "delay", "semitone",
-        "interval", "detune",
-    )
-    if any(word in key for word in bounded_words):
-        low, high, scale = parameter_range(name, default)
-        return {"kind": "knob", "low": low, "high": high,
-                "scale": scale, "integer": isinstance(default, int)}
-    step = 1.0 if isinstance(default, int) else max(.01, abs(float(default)) * .02)
-    return {"kind": "encoder", "step": step, "integer": isinstance(default, int)}
-
-
-class Knob(tk.Canvas):
-    def __init__(self, master, label, low, high, value, command=None, fmt="{:.2f}",
-                 endless=False, step=None, **kw):
-        super().__init__(master, width=82, height=102, bg="#d7d7d7", highlightthickness=0, **kw)
-        self.label, self.low, self.high = label, float(low), float(high)
-        self.value, self.command, self.fmt = float(value), command, fmt
-        self.endless = endless
-        self.step = float(step) if step is not None else max(.01, (self.high - self.low) / 100)
-        self._last_y = None
-        self.bind("<Button-1>", self._start)
-        self.bind("<B1-Motion>", self._drag)
-        self.bind("<MouseWheel>", self._wheel)
-        self.draw()
-
-    def get(self):
-        return self.value
-
-    def set(self, value, notify=False):
-        value = float(value)
-        self.value = value if self.endless else max(self.low, min(self.high, value))
-        self.draw()
-        if notify and self.command:
-            self.command(self.value)
-
-    def _start(self, event):
-        self._last_y = event.y
-
-    def _drag(self, event):
-        if self._last_y is None:
-            self._last_y = event.y
-        amount = self.step if self.endless else (self.high - self.low) / 150.0
-        self.set(self.value + (self._last_y - event.y) * amount, True)
-        self._last_y = event.y
-
-    def _wheel(self, event):
-        amount = self.step if self.endless else (self.high - self.low) / 100.0
-        self.set(self.value + (1 if event.delta > 0 else -1) * amount, True)
-
-    def set_control(self, label, low, high, value, fmt="{:.2f}", endless=False, step=None):
-        self.label = label
-        self.low, self.high = float(low), float(high)
-        self.fmt = fmt
-        self.endless = endless
-        self.step = float(step) if step is not None else max(.01, (self.high - self.low) / 100)
-        self.set(value)
-
-    def draw(self):
-        self.delete("all")
-        self.create_text(41, 9, text=self.label, font=("Sans", 9, "bold"))
-        self.create_oval(13, 22, 69, 78, fill="#eeeeee", outline="#555", width=2)
-        if self.endless:
-            frac = (self.value / max(self.step * 20, 1e-9)) % 1.0
-        else:
-            frac = 0 if self.high == self.low else (self.value - self.low) / (self.high - self.low)
-        angle = math.radians(225 - frac * 270)
-        self.create_line(41, 50, 41 + 22 * math.cos(angle), 50 - 22 * math.sin(angle),
-                         fill="#202020", width=3)
-        try:
-            shown = self.fmt.format(self.value)
-        except Exception:
-            shown = str(self.value)
-        self.create_text(41, 91, text=shown, font=("Sans", 8))
-
-
-class Waveform(tk.Canvas):
-    def __init__(self, master, app):
-        super().__init__(master, bg="#111318", height=185, highlightthickness=1,
-                         highlightbackground="#666")
-        self.app = app
-        self.bind("<Configure>", lambda _e: self.draw())
-        self.bind("<Button-1>", self._pick)
-        self.bind("<B1-Motion>", self._move)
-        self.dragging = None
-
-    def _pick(self, event):
-        w = max(1, self.winfo_width())
-        x1, x2 = self.app.start * w, self.app.end * w
-        self.dragging = "start" if abs(event.x - x1) < abs(event.x - x2) else "end"
-        self._move(event)
-
-    def _move(self, event):
-        if not self.dragging:
-            return
-        value = max(0.0, min(1.0, event.x / max(1, self.winfo_width())))
-        if self.dragging == "start":
-            self.app.start = min(value, self.app.end - .005)
-        else:
-            self.app.end = max(value, self.app.start + .005)
-        self.app.sync_trim_knobs()
-        self.draw()
-        self.app.schedule_waveform()
-
-    def draw(self, data=None):
-        self.delete("all")
-        w, h = max(2, self.winfo_width()), max(2, self.winfo_height())
-        audio = self.app.preview_data if data is None else data
-        self.create_line(0, h / 2, w, h / 2, fill="#343b46")
-        if audio is not None and len(audio):
-            mono = audio.mean(axis=1) if audio.ndim == 2 else audio
-            # One polygon is dramatically cheaper over X11/noVNC than creating
-            # one Canvas line object for every screen pixel.
-            columns = min(360, w, len(mono))
-            step = max(1, len(mono) // columns)
-            upper, lower = [], []
-            for column in range(columns):
-                chunk = mono[column * step:min(len(mono), (column + 1) * step)]
-                if len(chunk):
-                    lo = float(np.min(chunk))
-                    hi = float(np.max(chunk))
-                    x = column * (w - 1) / max(1, columns - 1)
-                    upper.append((x, h / 2 - hi * (h * .43)))
-                    lower.append((x, h / 2 - lo * (h * .43)))
-            if len(upper) >= 2:
-                polygon = upper + list(reversed(lower))
-                flattened = [coordinate for point in polygon for coordinate in point]
-                self.create_polygon(*flattened, fill="#245c38", outline="#71e38b", width=1)
-        self._draw_modulation_guides(w, h)
-        x1, x2 = self.app.start * w, self.app.end * w
-        self.create_rectangle(0, 0, x1, h, fill="#07080a", stipple="gray50", outline="")
-        self.create_rectangle(x2, 0, w, h, fill="#07080a", stipple="gray50", outline="")
-        self.create_line(x1, 0, x1, h, fill="#ffca57", width=3)
-        self.create_line(x2, 0, x2, h, fill="#ffca57", width=3)
-        if audio is None:
-            self.create_text(w / 2, h / 2, text="Load a sample or make a new sound",
-                             fill="#aeb5c0", font=("Sans", 12))
-
-    def _draw_modulation_guides(self, w, h):
-        if not hasattr(self.app, "knobs") or not hasattr(self.app, "duration"):
-            return
-        try:
-            duration = max(.01, float(self.app.duration.get()))
-            attack = self.app.knobs["Attack"].get()
-            decay = self.app.knobs["Decay"].get()
-            sustain = self.app.knobs["Sustain"].get()
-            release = self.app.knobs["Release"].get()
-        except (KeyError, ValueError, tk.TclError):
-            return
-
-        release_start = max(attack + decay, duration - release)
-        upper, lower = [], []
-        for x in range(0, w + 1, 3):
-            t = duration * x / max(1, w)
-            if attack > 0 and t < attack:
-                gain = t / attack
-            elif decay > 0 and t < attack + decay:
-                gain = 1.0 - (1.0 - sustain) * ((t - attack) / decay)
-            elif release > 0 and t >= release_start:
-                gain = sustain * max(0.0, (duration - t) / release)
-            else:
-                gain = sustain
-            y = gain * h * .43
-            upper.extend((x, h / 2 - y))
-            lower.extend((x, h / 2 + y))
-        if len(upper) >= 4:
-            self.create_line(*upper, fill="#58c7ff", width=2, dash=(5, 3))
-            self.create_line(*lower, fill="#58c7ff", width=2, dash=(5, 3))
-
-        depth = self.app.knobs["LFO depth"].get()
-        if depth > .001:
-            rate = self.app.knobs["LFO rate"].get()
-            points = []
-            for x in range(0, w + 1, 3):
-                t = duration * x / max(1, w)
-                y = h / 2 - math.sin(2 * math.pi * rate * t) * depth * h * .16
-                points.extend((x, y))
-            self.create_line(*points, fill="#d985ff", width=1, dash=(3, 3))
-
-
-class EffectRack(tk.Frame):
-    def __init__(self, master, app):
-        super().__init__(master, bg="#d7d7d7")
-        self.app = app
-        self.search = tk.StringVar()
-        self.search.trace_add("write", lambda *_: self.refresh_catalog())
-        left = tk.Frame(self, bg="#d7d7d7")
-        left.pack(side="left", fill="y", padx=6, pady=6)
-        tk.Label(left, text="All 91 FigLib effects", bg="#d7d7d7", font=("Sans", 10, "bold")).pack(anchor="w")
-        tk.Entry(left, textvariable=self.search, width=24).pack(fill="x", pady=3)
-        self.catalog = tk.Listbox(left, width=27, height=21, exportselection=False)
-        self.catalog.pack(fill="both", expand=True)
-        tk.Button(left, text="Add effect →", command=self.add, relief="raised").pack(fill="x", pady=4)
-
-        middle = tk.Frame(self, bg="#d7d7d7")
-        middle.pack(side="left", fill="y", padx=4, pady=6)
-        tk.Label(middle, text="Effect rack (top to bottom)", bg="#d7d7d7",
-                 font=("Sans", 10, "bold")).pack(anchor="w")
-        self.chain = tk.Listbox(middle, width=30, height=21, exportselection=False)
-        self.chain.pack(fill="both", expand=True, pady=3)
-        self.chain.bind("<<ListboxSelect>>", lambda _e: self.show_params())
-        row = tk.Frame(middle, bg="#d7d7d7")
-        row.pack(fill="x")
-        for text, cmd in (("↑", lambda: self.move(-1)), ("↓", lambda: self.move(1)),
-                          ("Bypass", self.bypass), ("Remove", self.remove)):
-            tk.Button(row, text=text, command=cmd).pack(side="left", expand=True, fill="x")
-
-        right = tk.Frame(self, bg="#d7d7d7", width=360)
-        right.pack(side="left", fill="both", expand=True, padx=6, pady=6)
-        self.param_title = tk.Label(right, text="Select an effect", bg="#d7d7d7",
-                                    font=("Sans", 11, "bold"))
-        self.param_title.pack(anchor="w")
-        self.param_canvas = tk.Canvas(right, bg="#d7d7d7", highlightthickness=0)
-        scroll = tk.Scrollbar(right, orient="vertical", command=self.param_canvas.yview)
-        scroll.pack(side="right", fill="y")
-        self.param_canvas.pack(side="left", fill="both", expand=True)
-        self.param_canvas.configure(yscrollcommand=scroll.set)
-        self.params = tk.Frame(self.param_canvas, bg="#d7d7d7")
-        self.param_canvas.create_window((0, 0), window=self.params, anchor="nw")
-        self.params.bind("<Configure>", lambda _e: self.param_canvas.configure(
-            scrollregion=self.param_canvas.bbox("all")))
-        self.refresh_catalog()
-
-    def refresh_catalog(self):
-        query = self.search.get().strip().lower()
-        self.catalog.delete(0, "end")
-        for name in sorted(EFFECT_DISPATCH):
-            if query in name:
-                self.catalog.insert("end", name)
-
-    def refresh_chain(self, select=None):
-        self.chain.delete(0, "end")
-        for fx in self.app.effects:
-            prefix = "  " if fx.get("enabled", True) else "× "
-            self.chain.insert("end", prefix + fx["type"])
-        if select is not None and self.app.effects:
-            select = max(0, min(select, len(self.app.effects) - 1))
-            self.chain.selection_set(select)
-            self.chain.see(select)
-        self.show_params()
-
-    def selected(self):
-        sel = self.chain.curselection()
-        return sel[0] if sel else None
-
-    def add(self):
-        sel = self.catalog.curselection()
-        if not sel:
-            return
-        name = self.catalog.get(sel[0])
-        self.app.effects.append({"type": name, "params": numeric_defaults(EFFECT_DISPATCH[name]),
-                                 "enabled": True})
-        self.refresh_chain(len(self.app.effects) - 1)
-        self.app.refresh_assignment_targets()
-        self.app.schedule_waveform()
-        self.app.schedule_macro_rebuild()
-
-    def remove(self):
-        i = self.selected()
-        if i is not None:
-            removed = self.app.effects.pop(i)
-            self.app.unassign_effect(removed)
-            self.refresh_chain(max(0, i - 1))
-            self.app.refresh_assignment_targets()
-            self.app.schedule_waveform()
-            self.app.schedule_macro_rebuild()
-
-    def bypass(self):
-        i = self.selected()
-        if i is not None:
-            self.app.effects[i]["enabled"] = not self.app.effects[i].get("enabled", True)
-            self.refresh_chain(i)
-            self.app.schedule_waveform()
-            self.app.schedule_macro_rebuild()
-
-    def move(self, direction):
-        i = self.selected()
-        if i is None or not 0 <= i + direction < len(self.app.effects):
-            return
-        self.app.effects[i], self.app.effects[i + direction] = self.app.effects[i + direction], self.app.effects[i]
-        self.refresh_chain(i + direction)
-        self.app.schedule_waveform()
-        self.app.schedule_macro_rebuild()
-
-    def show_params(self):
-        for child in self.params.winfo_children():
-            child.destroy()
-        i = self.selected()
-        if i is None:
-            self.param_title.configure(text="Select an effect")
-            return
-        fx = self.app.effects[i]
-        self.param_title.configure(text=fx["type"].replace("_", " ").title())
-        func = EFFECT_DISPATCH[fx["type"]]
-        defaults = numeric_defaults(func)
-        numeric_index = 0
-        text_row = 20
-        for name, default in defaults.items():
-            value = fx["params"].get(name, default)
-            enum_values = ENUM_OPTIONS.get((fx["type"], name))
-            spec = parameter_control_spec(name, default)
-            if enum_values:
-                row = text_row
-                text_row += 1
-                tk.Label(self.params, text=name, width=18, anchor="e",
-                         bg="#d7d7d7").grid(row=row, column=0, sticky="e", padx=4, pady=4)
-                var = tk.StringVar(value=str(value))
-                box = ttk.Combobox(self.params, textvariable=var, values=enum_values,
-                                   state="readonly", width=16)
-                box.grid(row=row, column=1, columnspan=2, sticky="w", padx=4, pady=4)
-                box.bind("<<ComboboxSelected>>",
-                         lambda _event, effect=fx, n=name, v=var:
-                         self.app.effect_parameter_changed(effect, n, v.get()))
-            elif spec["kind"] == "bool":
-                row = text_row
-                text_row += 1
-                var = tk.BooleanVar(value=bool(value))
-                tk.Checkbutton(
-                    self.params, text=name, variable=var, bg="#d7d7d7",
-                    command=lambda effect=fx, n=name, v=var:
-                    self.app.effect_parameter_changed(effect, n, v.get())
-                ).grid(row=row, column=0, columnspan=3, sticky="w", padx=8, pady=4)
-            elif spec["kind"] in ("knob", "encoder"):
-                row, column = divmod(numeric_index, 3)
-                numeric_index += 1
-                endless = spec["kind"] == "encoder"
-                low = spec.get("low", float(value) - 1.0)
-                high = spec.get("high", float(value) + 1.0)
-                fmt = "{:.0f}" if spec.get("integer") else "{:.3g}"
-                control = Knob(
-                    self.params, name, low, high, value, fmt=fmt,
-                    endless=endless, step=spec.get("step"),
-                    command=lambda new_value, effect=fx, n=name, meta=spec:
-                    self.app.effect_parameter_changed(
-                        effect, n, int(round(new_value)) if meta.get("integer") else new_value))
-                control.grid(row=row, column=column, padx=4, pady=3)
-            else:
-                row = text_row
-                text_row += 1
-                tk.Label(self.params, text=name, width=18, anchor="e",
-                         bg="#d7d7d7").grid(row=row, column=0, sticky="e", padx=4, pady=4)
-                var = tk.StringVar(value=str(value))
-                entry = tk.Entry(self.params, textvariable=var, width=18)
-                entry.grid(row=row, column=1, columnspan=2, sticky="w", padx=4, pady=4)
-                entry.bind("<Return>", lambda _event, effect=fx, n=name, v=var:
-                           self.app.effect_parameter_changed(effect, n, v.get()))
-        if not defaults:
-            tk.Label(self.params, text="This effect has no adjustable parameters.",
-                     bg="#d7d7d7").pack(anchor="w", pady=10)
-
-
-class PianoRoll(tk.Frame):
-    """A small sample sequencer whose cells retain complete sound snapshots."""
-
-    STEPS = 16
-    ROWS = 24
-
-    def __init__(self, master, app):
-        super().__init__(master, bg="#d7d7d7")
-        self.app = app
-        self.hits = {}
-        self.low_note = tk.IntVar(value=48)
-        self.bpm = tk.DoubleVar(value=120.0)
-        self._serial = 0
-
-        toolbar = tk.Frame(self, bg="#d7d7d7")
-        toolbar.pack(fill="x", padx=8, pady=(7, 3))
-        tk.Button(toolbar, text="Play pattern", command=app.play_pattern,
-                  bg="#d8f2d8", font=("Sans", 10, "bold")).pack(side="left")
-        tk.Button(toolbar, text="Stop", command=app.stop_audio).pack(side="left", padx=3)
-        tk.Button(toolbar, text="Save pattern WAV…", command=app.export_pattern).pack(
-            side="left", padx=(8, 3))
-        tk.Button(toolbar, text="Clear pattern", command=self.clear).pack(side="left", padx=3)
-        tk.Label(toolbar, text="BPM", bg="#d7d7d7").pack(side="left", padx=(18, 3))
-        tk.Spinbox(toolbar, from_=30, to=300, increment=1, width=6,
-                   textvariable=self.bpm).pack(side="left")
-        tk.Label(toolbar, text="Lowest note", bg="#d7d7d7").pack(side="left", padx=(18, 3))
-        low = tk.Spinbox(toolbar, from_=0, to=103, increment=1, width=5,
-                         textvariable=self.low_note, command=self.draw)
-        low.pack(side="left")
-        low.bind("<Return>", lambda _event: self.draw())
-        low.bind("<FocusOut>", lambda _event: self.draw())
-        tk.Label(toolbar,
-                 text="Left-click: place/remove current sound   •   Right-click: load hit back into sampler",
-                 bg="#d7d7d7", fg="#444").pack(side="right", padx=8)
-
-        self.canvas = tk.Canvas(self, bg="#22252b", highlightthickness=1,
-                                highlightbackground="#555")
-        self.canvas.pack(fill="both", expand=True, padx=8, pady=(2, 8))
-        self.canvas.bind("<Configure>", lambda _event: self.draw())
-        self.canvas.bind("<Button-1>", self.left_click)
-        self.canvas.bind("<Button-3>", self.right_click)
-
-    def geometry(self):
-        width = max(300, self.canvas.winfo_width())
-        height = max(240, self.canvas.winfo_height())
-        return 58, 25, (width - 60) / self.STEPS, (height - 27) / self.ROWS
-
-    def cell_at(self, event):
-        left, top, cw, ch = self.geometry()
-        step = int((event.x - left) // cw)
-        row = int((event.y - top) // ch)
-        if not (0 <= step < self.STEPS and 0 <= row < self.ROWS):
-            return None
-        low = max(0, min(103, int(self.low_note.get())))
-        return step, low + self.ROWS - 1 - row
-
-    def left_click(self, event):
-        cell = self.cell_at(event)
-        if cell is None:
-            return
-        if cell in self.hits:
-            del self.hits[cell]
-            self.app.status.set(f"Removed piano-roll hit at step {cell[0] + 1}.")
-            self.draw()
-            return
-        self.app.place_piano_hit(*cell)
-
-    def right_click(self, event):
-        cell = self.cell_at(event)
-        hit = self.hits.get(cell) if cell else None
-        if hit:
-            self.app.restore_piano_hit(hit)
-
-    def add_hit(self, step, note, snapshot):
-        palette = ("#e7a84a", "#5cb7d8", "#d672a8", "#78bf68",
-                   "#9a83db", "#d77a64", "#65c4ae", "#c5b957")
-        self._serial += 1
-        hit = {
-            "snapshot": snapshot, "audio": None, "pending": False,
-            "color": palette[(self._serial - 1) % len(palette)],
-            "label": snapshot["label"],
-        }
-        self.hits[(step, note)] = hit
-        self.draw()
-        return hit
-
-    def clear(self):
-        self.hits.clear()
-        self.draw()
-        self.app.status.set("Piano roll cleared.")
-
-    def draw(self):
-        if not hasattr(self, "canvas"):
-            return
-        c = self.canvas
-        c.delete("all")
-        left, top, cw, ch = self.geometry()
-        low = max(0, min(103, int(self.low_note.get())))
-        black = {1, 3, 6, 8, 10}
-        for row in range(self.ROWS):
-            note = low + self.ROWS - 1 - row
-            y0, y1 = top + row * ch, top + (row + 1) * ch
-            fill = "#292d34" if note % 12 in black else "#343942"
-            c.create_rectangle(left, y0, left + self.STEPS * cw, y1,
-                               fill=fill, outline="")
-            c.create_text(left - 5, (y0 + y1) / 2, text=note_name(note),
-                          anchor="e", fill="#e2e2e2", font=("Sans", 8))
-        for step in range(self.STEPS + 1):
-            x = left + step * cw
-            c.create_line(x, top, x, top + self.ROWS * ch,
-                          fill="#858b95" if step % 4 == 0 else "#50555d",
-                          width=2 if step % 4 == 0 else 1)
-            if step < self.STEPS:
-                c.create_text(x + cw / 2, 12, text=str(step + 1),
-                              fill="#eeeeee", font=("Sans", 8, "bold"))
-        for row in range(self.ROWS + 1):
-            y = top + row * ch
-            c.create_line(left, y, left + self.STEPS * cw, y, fill="#454a52")
-        for (step, note), hit in self.hits.items():
-            row = low + self.ROWS - 1 - note
-            if not 0 <= row < self.ROWS:
-                continue
-            x0, y0 = left + step * cw + 2, top + row * ch + 2
-            x1, y1 = left + (step + 1) * cw - 2, top + (row + 1) * ch - 2
-            fill = hit["color"]
-            c.create_rectangle(x0, y0, x1, y1, fill=fill,
-                               outline="#fff3ba", width=1)
-            if cw > 45 and ch > 13:
-                label = hit["label"]
-                c.create_text((x0 + x1) / 2, (y0 + y1) / 2,
-                              text=label[:10], fill="#111", font=("Sans", 7, "bold"))
-
-
-class App:
+class App(PatchLogicMixin, PianoRollLogicMixin, AudioLogicMixin):
     def __init__(self, root):
         self.root = root
         root.title("FigSynth2")
@@ -676,6 +74,10 @@ class App:
         self._piano_audio_cache = {}
         self._pattern_busy = False
         self._osc_after = None
+        self._osc_visual_after = None
+        self.osc_form = None
+        self._knob_assignment_menu = None
+        self._knob_menu_click_binding = None
         self.macro_assignments = [None, None, None, None]
         self.macro_knobs = []
         self.macro_labels = []
@@ -691,6 +93,7 @@ class App:
         self._stream_process = None
         self._stream_buffer = None
         self._stream_position = 0
+        self._stream_repeats_remaining = 1
         self._stream_token = 0
         self._live_wet_cache = {}
         self._export_busy = False
@@ -699,12 +102,18 @@ class App:
         self.mode = tk.StringVar(value="synth")
         self.genre = tk.StringVar(value="keys")
         self.loop = tk.BooleanVar(value=False)
+        self.loop_count = tk.IntVar(value=2)
         self.status = tk.StringVar(value="Ready. Make a sound or load a WAV.")
         self.current_note = 60
         self.current_notes = [60]
         self.chord_type = tk.StringVar(value="Major")
         self.play_mode = tk.StringVar(value="Note")
         self.keyboard_choice = tk.StringVar(value="Single note")
+        self.arpeggiator = tk.BooleanVar(value=False)
+        self.arp_step = tk.DoubleVar(value=.25)
+        self.arp_order = []
+        self.arp_capture = False
+        self.arp_order_text = tk.StringVar(value="Order: —")
         self.custom_notes = set()
         self.shape_root = None
         self.shape_notes = set()
@@ -743,6 +152,8 @@ class App:
         genre_box.pack(side="left", padx=3)
         genre_box.bind("<<ComboboxSelected>>", lambda _event: self.new_sound())
         tk.Button(top, text="Load sample…", command=self.load_sample).pack(side="left", padx=3)
+        tk.Button(top, text="Load patch…", command=self.load_patch).pack(side="left", padx=3)
+        tk.Button(top, text="Save patch…", command=self.save_patch).pack(side="left", padx=3)
         self.save_button = tk.Button(top, text="Export audio", command=self.export,
                                      font=("Sans", 10, "bold"), bg="#d8f2d8")
         self.save_button.pack(side="left", padx=10)
@@ -794,7 +205,19 @@ class App:
 
         options = tk.Frame(main, bg="#d7d7d7")
         options.pack(fill="x", padx=10, pady=2)
-        tk.Checkbutton(options, text="Loop sample", variable=self.loop, bg="#d7d7d7").pack(side="left")
+        tk.Checkbutton(
+            options, text="Loop playback", variable=self.loop,
+            command=self.loop_changed, bg="#d7d7d7").pack(side="left")
+        tk.Label(options, text="×", bg="#d7d7d7").pack(side="left", padx=(4, 1))
+        loop_count = tk.Spinbox(
+            options, from_=0, to=64, increment=1, width=3,
+            textvariable=self.loop_count, command=self.loop_changed)
+        loop_count.pack(side="left")
+        loop_count.bind("<Return>", lambda _event: self.loop_changed())
+        loop_count.bind("<FocusOut>", lambda _event: self.loop_changed())
+        tk.Label(options, text="(0 = forever)", bg="#d7d7d7", fg="#555").pack(
+            side="left", padx=(2, 0))
+        tk.Button(options, text="Stop", command=self.stop_audio).pack(side="left", padx=(4, 0))
         tk.Label(options, text="Length", bg="#d7d7d7").pack(side="left", padx=(12, 2))
         self.duration = tk.DoubleVar(value=2.0)
         tk.Spinbox(options, from_=.1, to=12, increment=.1, textvariable=self.duration,
@@ -830,6 +253,27 @@ class App:
         self.chord_help = tk.Label(chordbar, text="",
                                    bg="#d7d7d7", fg="#555")
         self.chord_help.pack(side="left", padx=6)
+
+        arpbar = tk.Frame(main, bg="#d7d7d7")
+        arpbar.pack(fill="x", padx=10, pady=(0, 2))
+        tk.Checkbutton(
+            arpbar, text="Arpeggiator", variable=self.arpeggiator,
+            command=self.arpeggiator_changed, bg="#d7d7d7").pack(side="left")
+        self.arp_order_button = tk.Button(
+            arpbar, text="Set note order", command=self.begin_arp_order)
+        self.arp_order_button.pack(side="left", padx=(8, 3))
+        self.arp_play_button = tk.Button(
+            arpbar, text="Play arpeggio", command=self.play_arpeggio)
+        self.arp_play_button.pack(side="left", padx=3)
+        tk.Button(arpbar, text="Clear order", command=self.clear_arp_order).pack(
+            side="left", padx=3)
+        tk.Label(arpbar, text="Step", bg="#d7d7d7").pack(side="left", padx=(12, 2))
+        tk.Spinbox(
+            arpbar, from_=.05, to=2.0, increment=.05, width=5,
+            textvariable=self.arp_step).pack(side="left")
+        tk.Label(arpbar, text="seconds", bg="#d7d7d7").pack(side="left", padx=(2, 10))
+        tk.Label(arpbar, textvariable=self.arp_order_text,
+                 bg="#d7d7d7", fg="#333").pack(side="left")
 
         keys = tk.LabelFrame(main, text="Play (computer keys: Z row / Q row)", bg="#d7d7d7")
         keys.pack(fill="both", expand=True, padx=6, pady=5)
@@ -890,7 +334,10 @@ class App:
                 f"gain {config.get('gain', 1.0):.2f}")
         if oscillators:
             select = max(0, min(select, len(oscillators) - 1))
+            self.osc_list.selection_clear(0, "end")
             self.osc_list.selection_set(select)
+            self.osc_list.activate(select)
+            self.osc_list.see(select)
             self.show_oscillator()
         else:
             for child in self.osc_editor.winfo_children():
@@ -912,19 +359,34 @@ class App:
         index, config = self.selected_oscillator()
         if config is None:
             return
-        tk.Label(self.osc_editor, text=f"Oscillator {index + 1}",
+        is_sample = config.get("waveform") == "sample"
+        heading = "Sample oscillator" if is_sample else "Oscillator"
+        tk.Label(self.osc_editor, text=f"{heading} {index + 1}",
                  bg="#d7d7d7", font=("Sans", 12, "bold")).grid(
                      row=0, column=0, columnspan=4, sticky="w", pady=(0, 8))
+        self.osc_form = OscillatorForm(self.osc_editor)
+        self.osc_form.grid(row=1, column=0, columnspan=4, sticky="ew", padx=5, pady=(0, 8))
+        self.osc_editor.grid_columnconfigure(3, weight=1)
+        self.osc_form.show(config, self.sample if is_sample else None)
         tk.Label(self.osc_editor, text="Waveform", bg="#d7d7d7").grid(
-            row=1, column=0, sticky="e", padx=5)
+            row=2, column=0, sticky="e", padx=5)
         waveform = tk.StringVar(value=config.get("waveform", "sine"))
-        waveforms = tuple(w for w in Oscillator.WAVEFORMS if w != "sample")
+        waveforms = ("sample",) if is_sample else tuple(
+            w for w in Oscillator.WAVEFORMS if w != "sample")
         box = ttk.Combobox(self.osc_editor, textvariable=waveform,
-                           values=waveforms, state="readonly", width=18)
-        box.grid(row=1, column=1, sticky="w", padx=5)
+                           values=waveforms, state="disabled" if is_sample else "readonly",
+                           width=18)
+        box.grid(row=2, column=1, sticky="w", padx=5)
         box.bind("<<ComboboxSelected>>",
                  lambda _event, c=config, v=waveform:
                  self.set_oscillator_parameter(c, "waveform", v.get()))
+
+        if is_sample:
+            tk.Label(self.osc_editor,
+                     text=os.path.basename(config.get("sample_name", "Loaded sample")),
+                     bg="#d7d7d7", fg="#444").grid(
+                         row=3, column=0, columnspan=4, sticky="w", padx=5, pady=8)
+            return
 
         specs = (
             ("gain", 0.0, 1.5, False, .01),
@@ -955,7 +417,7 @@ class App:
                 command=lambda new_value, c=config, n=name, is_int=integer:
                 self.set_oscillator_parameter(
                     c, n, int(round(new_value)) if is_int else new_value))
-            knob.grid(row=row + 2, column=column, padx=5, pady=4)
+            knob.grid(row=row + 3, column=column, padx=5, pady=4)
 
     def set_oscillator_parameter(self, config, name, value):
         config[name] = value
@@ -963,28 +425,50 @@ class App:
 
     def oscillator_changed(self):
         self._live_dry_buffer = None
+        self._live_wet_cache.clear()
+        # The selected-source waveform is cheap, so keep it responsive while
+        # dragging. Never rebuild the editor here: destroying the knob under an
+        # active pointer grab caused the remote UI to stutter and skip events.
+        if self._osc_visual_after is None:
+            self._osc_visual_after = self.root.after(24, self._refresh_oscillator_visual)
         if self._osc_after is not None:
             try:
                 self.root.after_cancel(self._osc_after)
             except tk.TclError:
                 pass
-        self._osc_after = self.root.after(250, self._refresh_oscillator_preview)
+        # The Instrument waveform and any sounding preview use the full synth.
+        # Debounce that work until the user pauses instead of launching it for
+        # every pixel of knob motion.
+        self._osc_after = self.root.after(325, self._refresh_oscillator_preview)
+
+    def _refresh_oscillator_visual(self):
+        self._osc_visual_after = None
+        index, config = self.selected_oscillator()
+        if config is None:
+            return
+        if self.osc_form is not None and self.osc_form.winfo_exists():
+            sample = self.sample if config.get("waveform") == "sample" else None
+            self.osc_form.show(config, sample)
 
     def _refresh_oscillator_preview(self):
         self._osc_after = None
-        self.refresh_oscillator_list(
-            self.osc_list.curselection()[0] if self.osc_list.curselection() else 0)
-        threading.Thread(target=self._update_synth_preview, daemon=True).start()
+        oscillators = (self.patch or {}).get("oscillators", [])
+        if self.mode.get() == "synth" and oscillators:
+            self.source_label.configure(
+                text=", ".join(item.get("waveform", "?") for item in oscillators))
+            self.schedule_waveform()
+            self.schedule_live_refresh()
 
     def add_oscillator(self):
         if not self.patch:
             self.blank_synth()
-        config = {
-            "waveform": "sine", "detune": 0.0, "phase": 0.0,
-            "pulse_width": .5, "morph_pos": 0.0, "gain": .8,
-            "unison": 1, "unison_detune": 0.0, "unison_spread": 0.0,
-            "fm_ratio": 1.0, "fm_depth": 0.0,
-        }
+        if self.mode.get() == "sample":
+            self.mode.set("synth")
+            self.sample = None
+            self.sample_path = None
+            self.patch = {"genre": "custom", "oscillators": [], "effects": [],
+                          "envelope": {}, "lfos": {}}
+        config = default_oscillator()
         self.patch.setdefault("oscillators", []).append(config)
         self.refresh_oscillator_list(len(self.patch["oscillators"]) - 1)
         self.oscillator_changed()
@@ -1000,10 +484,41 @@ class App:
     def remove_oscillator(self):
         index, config = self.selected_oscillator()
         if config is None:
+            self.status.set("Select an oscillator to remove.")
             return
-        self.patch["oscillators"].pop(index)
+        if self._osc_after is not None:
+            try:
+                self.root.after_cancel(self._osc_after)
+            except tk.TclError:
+                pass
+            self._osc_after = None
+        removed = remove_oscillator_config(self.patch, index)
+        if removed is None:
+            self.status.set("That oscillator is no longer in the stack.")
+            return
+        remaining = self.patch.get("oscillators", [])
+        if (removed.get("waveform") == "sample"
+                and not any(item.get("waveform") == "sample" for item in remaining)):
+            self.sample = None
+            self.sample_path = None
+            self.sample_rate = RATE
+            self.mode.set("synth")
+        self.stop_audio()
+        self.live_source = None
+        self.live_effect_source = None
+        self._live_dry_buffer = None
+        self._live_wet_cache.clear()
         self.refresh_oscillator_list(max(0, index - 1))
-        self.oscillator_changed()
+        if remaining:
+            self.source_label.configure(
+                text=", ".join(item.get("waveform", "?") for item in remaining))
+            self.status.set(f"Removed {removed.get('waveform', 'oscillator')} oscillator.")
+            self._osc_after = self.root.after(50, self._refresh_oscillator_preview)
+        else:
+            self.preview_data = None
+            self.source_label.configure(text="No oscillators")
+            self.wave.draw()
+            self.status.set("Oscillator removed. Add one to make sound.")
 
     def blank_synth(self):
         self.clear_macro_assignments()
@@ -1034,12 +549,7 @@ class App:
             self._restore_main_knob(name)
         self.patch = {
             "genre": "custom",
-            "oscillators": [{
-                "waveform": "triangle", "detune": 0.0, "phase": 0.0,
-                "pulse_width": .5, "morph_pos": 0.0, "gain": .8,
-                "unison": 1, "unison_detune": 0.0, "unison_spread": 0.0,
-                "fm_ratio": 1.0, "fm_depth": 0.0,
-            }],
+            "oscillators": [default_oscillator("triangle")],
             "effects": [],
             "envelope": {"attack": .01, "hold": 0.0, "decay": .1,
                          "sustain_level": .8, "release": .15},
@@ -1053,8 +563,14 @@ class App:
         self.start, self.end = 0.0, 1.0
         self.duration.set(2.0)
         self.loop.set(False)
+        self.loop_count.set(2)
         self.lfo_target.set("pitch")
         self.keyboard_choice.set("Single note")
+        self.arpeggiator.set(False)
+        self.arp_step.set(.25)
+        self.arp_order.clear()
+        self.arp_capture = False
+        self.update_arp_controls()
         self.play_mode.set("Note")
         self.chord_type.set("Major")
         self.custom_notes.clear()
@@ -1099,7 +615,9 @@ class App:
             shape_selected = self.play_mode.get() == "Chord shape" and midi in self.shape_notes
             shape_root = self.play_mode.get() == "Chord shape" and midi == self.shape_root
             color = "#ffca57" if shape_root else "#9fe3aa" if shape_selected else "#9fd4ff" if custom_selected else "white"
-            b = tk.Button(frame, text=note_name(midi),
+            order = self.arp_positions(midi)
+            text = note_name(midi) + (f"\n{order}" if order else "")
+            b = tk.Button(frame, text=text,
                           bg=color,
                           activebackground="#d8f2d8",
                           command=lambda n=midi: self.trigger_key(n))
@@ -1112,7 +630,9 @@ class App:
                 shape_selected = self.play_mode.get() == "Chord shape" and midi in self.shape_notes
                 shape_root = self.play_mode.get() == "Chord shape" and midi == self.shape_root
                 color = "#ffca57" if shape_root else "#3d9955" if shape_selected else "#2c78c4" if custom_selected else "#202020"
-                b = tk.Button(frame, text=NOTE_NAMES[midi % 12],
+                order = self.arp_positions(midi)
+                text = NOTE_NAMES[midi % 12] + (f"\n{order}" if order else "")
+                b = tk.Button(frame, text=text,
                               fg="#111" if shape_root else "white",
                               bg=color,
                               activebackground="#4b6a50",
@@ -1135,6 +655,9 @@ class App:
 
     def keyboard_choice_changed(self):
         choice = self.keyboard_choice.get()
+        self.arp_order.clear()
+        self.arp_capture = False
+        self.update_arp_controls()
         if choice == "Single note":
             self.play_mode.set("Note")
         elif choice == "Custom chord":
@@ -1148,9 +671,101 @@ class App:
             self.chord_shape_changed()
         self.mode_changed()
 
+    def chord_notes(self):
+        if self.play_mode.get() == "Chord shape":
+            return set(self.shape_notes)
+        if self.play_mode.get() == "Custom chord":
+            return set(self.custom_notes)
+        return {self.current_note}
+
+    def arp_positions(self, midi):
+        positions = [str(index + 1) for index, note in enumerate(self.arp_order)
+                     if note == midi]
+        return ",".join(positions)
+
+    def update_arp_controls(self):
+        if not hasattr(self, "arp_order_button"):
+            return
+        enabled = bool(self.arpeggiator.get())
+        state = "normal" if enabled else "disabled"
+        self.arp_order_button.configure(
+            state=state, text="Done ordering" if self.arp_capture else "Set note order")
+        self.arp_play_button.configure(state=state)
+        label = " → ".join(note_name(note) for note in self.arp_order) or "—"
+        self.arp_order_text.set(f"Order: {label}")
+
+    def arpeggiator_changed(self):
+        if not self.arpeggiator.get():
+            self.arp_capture = False
+            self.status.set("Arpeggiator off.")
+        else:
+            self.status.set("Choose a chord, then set its note order.")
+        self._live_wet_cache.clear()
+        self.update_arp_controls()
+        self.redraw_keyboard()
+
+    def loop_changed(self):
+        try:
+            count = max(0, min(64, int(self.loop_count.get())))
+        except (tk.TclError, ValueError):
+            count = 2
+        self.loop_count.set(count)
+        with self._stream_lock:
+            self._stream_repeats_remaining = (0 if count == 0 else count) if self.loop.get() else 1
+        self._live_wet_cache.clear()
+        self.schedule_waveform()
+        if not self.loop.get():
+            self.status.set("Playback looping off.")
+        elif count == 0:
+            self.status.set("Playback will loop until Stop; export will contain one pass.")
+        else:
+            self.status.set(f"Playback and arpeggio export will use {count} passes.")
+
+    def clear_arp_order(self):
+        self.arp_order.clear()
+        self.arp_capture = False
+        self.update_arp_controls()
+        self.redraw_keyboard()
+        self.status.set("Arpeggio order cleared.")
+
+    def begin_arp_order(self):
+        if not self.arpeggiator.get():
+            return
+        if self.arp_capture:
+            self.arp_capture = False
+            self.update_arp_controls()
+            self.status.set("Arpeggio order finished. Press Play arpeggio.")
+            return
+        available = self.chord_notes()
+        if self.play_mode.get() == "Chord shape" and self.shape_root is None:
+            self.status.set("Click a root key first, then click chord notes in playback order.")
+            return
+        if self.play_mode.get() == "Custom chord" and not self.custom_notes:
+            self.status.set("Choose custom chord notes first, then set their playback order.")
+            return
+        if self.play_mode.get() == "Note" or len(available) < 2:
+            self.status.set("Choose a chord or custom chord before setting an arpeggio order.")
+            return
+        self.arp_order.clear()
+        self.arp_capture = True
+        self.update_arp_controls()
+        self.redraw_keyboard()
+        self.status.set("Click highlighted chord keys in the order they should play; repeats are allowed.")
+
+    def play_arpeggio(self):
+        if not self.arpeggiator.get() or not self.arp_order:
+            self.status.set("Set an arpeggio note order first.")
+            return
+        self.arp_capture = False
+        self.update_arp_controls()
+        self.play(list(self.arp_order), arpeggiate=True)
+
     def chord_shape_changed(self):
         if self.shape_root is None:
             return
+        self.arp_order.clear()
+        self.arp_capture = False
+        self.update_arp_controls()
         self.shape_notes = {self.shape_root + interval for interval in CHORDS[self.chord_type.get()]}
         self.current_notes = sorted(self.shape_notes)
         self.redraw_keyboard()
@@ -1167,6 +782,7 @@ class App:
 
     def clear_custom_notes(self):
         self.custom_notes.clear()
+        self.clear_arp_order()
         self.current_notes = [self.current_note]
         self.redraw_keyboard()
         self.status.set("Custom chord cleared. Click any notes you want.")
@@ -1174,12 +790,32 @@ class App:
     def trigger_key(self, midi):
         mode = self.play_mode.get()
         self.current_note = midi
+        if self.arp_capture:
+            if midi not in self.chord_notes():
+                self.status.set("That key is not part of the selected chord.")
+                return
+            self.arp_order.append(midi)
+            self.update_arp_controls()
+            self.redraw_keyboard()
+            self.status.set(
+                f"Arpeggio step {len(self.arp_order)}: {note_name(midi)}. "
+                "Add another note or press Done ordering.")
+            return
         if mode == "Note":
             notes = [midi]
         elif mode == "Chord shape":
             notes = [midi + interval for interval in CHORDS[self.chord_type.get()]]
             self.shape_root = midi
             self.shape_notes = set(notes)
+            if self.arpeggiator.get():
+                self.arp_order.clear()
+                self.arp_capture = True
+                self.update_arp_controls()
+                self.redraw_keyboard()
+                self.chord_help.configure(text=self.shape_description())
+                self.status.set(
+                    "Root selected. Click highlighted chord keys in arpeggio order; repeats are allowed.")
+                return
             self.redraw_keyboard()
             self.chord_help.configure(text=self.shape_description())
         else:
@@ -1287,7 +923,9 @@ class App:
         audio = None
         error = None
         try:
-            dry = self.render(notes, preview=True, live=True)
+            arpeggiate = bool(self.arpeggiator.get() and self.arp_order)
+            play_notes = list(self.arp_order) if arpeggiate else notes
+            dry = self._render_playback(play_notes, arpeggiate)
             audio = self._process_realtime_effects(dry)
         except Exception as exc:
             error = exc
@@ -1329,10 +967,11 @@ class App:
 
     def show_knob_assignment_menu(self, event, name):
         """Assign a Shape knob through Effect → Parameter context menus."""
+        self.dismiss_knob_assignment_menu()
         menu = tk.Menu(self.root, tearoff=False)
         menu.add_command(
             label=f"Default: {self.knob_specs[name]['label']}",
-            command=lambda: self._assign_knob_target(name, None))
+            command=lambda: self._choose_knob_assignment(name, None))
         menu.add_separator()
         active = 0
         for effect_index, effect in enumerate(self.effects, 1):
@@ -1354,14 +993,36 @@ class App:
                 submenu.add_command(
                     label=f"{parameter}  ({current:.4g})",
                     command=lambda target=(effect, parameter, default):
-                    self._assign_knob_target(name, target))
+                    self._choose_knob_assignment(name, target))
             menu.add_cascade(label=f"{effect_index}. {effect['type']}", menu=submenu)
         if not active:
             menu.add_command(label="No active numeric effects", state="disabled")
-        try:
-            menu.tk_popup(event.x_root, event.y_root)
-        finally:
-            menu.grab_release()
+        self._knob_assignment_menu = menu
+        menu.post(event.x_root, event.y_root)
+        self._knob_menu_click_binding = self.root.bind(
+            "<ButtonPress-1>", self.dismiss_knob_assignment_menu, add="+")
+
+    def dismiss_knob_assignment_menu(self, _event=None):
+        """Close the assignment popup without consuming the outside click."""
+        menu = self._knob_assignment_menu
+        self._knob_assignment_menu = None
+        if menu is not None:
+            try:
+                menu.unpost()
+                menu.destroy()
+            except tk.TclError:
+                pass
+        binding = self._knob_menu_click_binding
+        self._knob_menu_click_binding = None
+        if binding is not None:
+            try:
+                self.root.unbind("<ButtonPress-1>", binding)
+            except tk.TclError:
+                pass
+
+    def _choose_knob_assignment(self, name, target):
+        self.dismiss_knob_assignment_menu()
+        self._assign_knob_target(name, target)
 
     def _assign_knob_target(self, name, target):
         self._restore_main_knob(name)
@@ -1474,11 +1135,19 @@ class App:
             if len(data) > sr * 120:
                 raise ValueError("Samples are limited to 2 minutes")
             self.sample, self.sample_rate, self.sample_path = data, sr, path
-            self.preview_data, self.patch = data, None
+            self.preview_data = data
+            self.patch = {
+                "genre": "sample",
+                "oscillators": [sample_oscillator(path)],
+                "effects": [],
+                "envelope": {},
+                "lfos": {},
+            }
             self.mode.set("sample")
             self.start, self.end = 0, 1
             self.sync_trim_knobs()
             self.source_label.configure(text=f"Sample: {os.path.basename(path)}  •  {len(data)/sr:.2f}s  •  {sr} Hz")
+            self.refresh_oscillator_list()
             self.wave.draw()
             self.status.set("Sample loaded. Play the keyboard or shape it with the knobs.")
             self.schedule_waveform()
@@ -1852,617 +1521,6 @@ class App:
             audio *= .99 / peak
         return audio
 
-    def capture_sound_state(self):
-        """Capture everything needed to reproduce and later edit one roll hit."""
-        assignment_state = {}
-        for name, assignment in self.control_assignments.items():
-            try:
-                effect_index = next(
-                    i for i, effect in enumerate(self.effects)
-                    if effect is assignment["effect"])
-            except StopIteration:
-                continue
-            assignment_state[name] = {
-                "effect_index": effect_index,
-                "parameter": assignment["parameter"],
-                "integer": assignment.get("integer", False),
-            }
-        if self.mode.get() == "sample":
-            label = os.path.splitext(os.path.basename(self.sample_path or "sample"))[0]
-        else:
-            waves = [osc.get("waveform", "osc") for osc in
-                     (self.patch or {}).get("oscillators", [])]
-            label = "+".join(waves[:2]) or "synth"
-        return {
-            "label": label,
-            "mode": self.mode.get(),
-            # Sample arrays are immutable in this UI. Retaining the reference
-            # avoids duplicating a potentially large file for every grid hit.
-            "sample": self.sample,
-            "sample_rate": self.sample_rate,
-            "sample_path": self.sample_path,
-            "patch": copy.deepcopy(self.patch),
-            "effects": copy.deepcopy(self.effects),
-            "knobs": {name: knob.get() for name, knob in self.knobs.items()},
-            "assignments": assignment_state,
-            "start": self.start,
-            "end": self.end,
-            "duration": float(self.duration.get()),
-            "loop": bool(self.loop.get()),
-            "lfo_target": self.lfo_target.get(),
-            "genre": self.genre.get(),
-        }
-
-    def restore_piano_hit(self, hit):
-        state = hit["snapshot"]
-        self.clear_macro_assignments()
-        self.mode.set(state["mode"])
-        self.sample = state["sample"]
-        self.sample_rate = state["sample_rate"]
-        self.sample_path = state["sample_path"]
-        self.patch = copy.deepcopy(state["patch"])
-        self.effects = copy.deepcopy(state["effects"])
-        self.start, self.end = state["start"], state["end"]
-        self.duration.set(state["duration"])
-        self.loop.set(state["loop"])
-        self.lfo_target.set(state["lfo_target"])
-        if state["genre"] in self.randomizer.genres:
-            self.genre.set(state["genre"])
-        for name in self.knobs:
-            self._restore_main_knob(name)
-            self.knobs[name].set(state["knobs"].get(name, self.knob_specs[name]["value"]))
-        self.control_assignments.clear()
-        for name, saved in state.get("assignments", {}).items():
-            index = saved["effect_index"]
-            if name not in self.knobs or not 0 <= index < len(self.effects):
-                continue
-            effect = self.effects[index]
-            parameter = saved["parameter"]
-            defaults = numeric_defaults(EFFECT_DISPATCH[effect["type"]])
-            if parameter not in defaults:
-                continue
-            default = defaults[parameter]
-            spec = parameter_control_spec(parameter, default)
-            value = effect.get("params", {}).get(parameter, default)
-            if spec["kind"] == "knob":
-                low, high, endless, step = spec["low"], spec["high"], False, None
-            else:
-                step = spec.get("step", max(.01, abs(float(default)) * .02))
-                low, high, endless = float(value) - step * 10, float(value) + step * 10, True
-            self.control_assignments[name] = {
-                "effect": effect, "parameter": parameter,
-                "integer": saved.get("integer", False),
-            }
-            self.knobs[name].set_control(
-                parameter, low, high, value,
-                "{:.0f}" if saved.get("integer") else "{:.3g}",
-                endless=endless, step=step)
-        self._live_dry_buffer = None
-        self.rack.refresh_chain()
-        self.refresh_assignment_targets()
-        self.refresh_oscillator_list()
-        if state["mode"] == "sample":
-            seconds = len(self.sample) / self.sample_rate if self.sample is not None else 0
-            self.source_label.configure(
-                text=f"Sample: {os.path.basename(self.sample_path or 'sample')}  •  {seconds:.2f}s")
-        else:
-            self.source_label.configure(text=f"Piano-roll synth: {state['label']}")
-        self.preview_data = hit.get("audio")
-        self.wave.draw()
-        self.tabs.select(0)
-        self.status.set(f"Loaded piano-roll hit “{state['label']}” back into the sampler.")
-
-    def place_piano_hit(self, step, note):
-        if self.mode.get() == "sample" and self.sample is None:
-            self.status.set("Load a sample before placing a sample hit.")
-            return
-        if self.mode.get() == "synth" and not self.patch:
-            self.status.set("Make a synth sound before placing a hit.")
-            return
-        snapshot = self.capture_sound_state()
-        hit = self.piano_roll.add_hit(step, note, snapshot)
-        key = self._piano_render_key(snapshot, note)
-        hit["render_key"] = key
-        cached = self._piano_audio_cache.get(key)
-        if cached is not None:
-            hit["audio"] = cached
-        self.status.set(
-            f"Placed {snapshot['label']} at step {step + 1}, {note_name(note)}.")
-
-    @staticmethod
-    def _piano_render_key(snapshot, note):
-        return (
-            snapshot["mode"], id(snapshot["sample"]), snapshot["sample_path"], note,
-            snapshot["start"], snapshot["end"], snapshot["duration"], snapshot["loop"],
-            snapshot["lfo_target"], tuple(sorted(snapshot["knobs"].items())),
-            repr(snapshot["patch"]), repr(snapshot["effects"]),
-        )
-
-    @staticmethod
-    def _render_sound_state(state, note):
-        """Render a captured hit without reading or mutating Tk UI state."""
-        knobs = state["knobs"]
-        duration = max(.05, float(state["duration"]))
-        if state["mode"] == "sample":
-            sample = state["sample"]
-            if sample is None:
-                raise ValueError("The captured sample is no longer available")
-            lo = int(state["start"] * len(sample))
-            hi = int(state["end"] * len(sample))
-            source = sample[lo:max(lo + 1, hi)]
-            ratio = (2 ** ((note - 60 + knobs["Pitch"]) / 12.0)
-                     * state["sample_rate"] / RATE)
-            wanted = max(1, int(duration * RATE))
-            positions = np.arange(wanted, dtype=np.float64) * ratio
-            if state["loop"]:
-                positions %= max(1, len(source) - 1)
-            valid = positions < len(source) - 1
-            audio = np.zeros((wanted, source.shape[1]), dtype=np.float64)
-            points = positions[valid]
-            left = points.astype(np.int64)
-            frac = (points - left)[:, None]
-            audio[valid] = (source[left] * (1 - frac)
-                            + source[np.minimum(left + 1, len(source) - 1)] * frac)
-            env = Envelope(attack=knobs["Attack"], decay=knobs["Decay"],
-                           sustain_level=knobs["Sustain"], release=knobs["Release"])
-            audio *= env.get_envelope(len(audio))[:, None]
-        else:
-            patch = state["patch"] or {}
-            synth = FiggyGenSynth(RATE)
-            for osc in patch.get("oscillators", []):
-                synth.add_oscillator(**osc)
-            synth.set_effects([])
-            synth.envelope = Envelope(attack=knobs["Attack"], decay=knobs["Decay"],
-                                      sustain_level=knobs["Sustain"], release=knobs["Release"])
-            frequency = 440 * 2 ** ((note + knobs["Pitch"] - 69) / 12)
-            audio = synth.render(duration, frequency)
-        if audio.ndim == 1:
-            audio = np.column_stack((audio, audio))
-        if state["mode"] == "synth" and (state["start"] > 0.0 or state["end"] < 1.0):
-            lo = max(0, min(len(audio) - 1, int(state["start"] * len(audio))))
-            hi = max(lo + 1, min(len(audio), int(state["end"] * len(audio))))
-            audio = audio[lo:hi]
-        cutoff, resonance = knobs["Cutoff"], knobs["Resonance"]
-        if cutoff < 17950:
-            audio = EFFECT_DISPATCH["filter"](
-                audio, cutoff=cutoff, resonance=resonance, sample_rate=RATE)
-        depth = knobs["LFO depth"]
-        if depth > .001:
-            rate, target = knobs["LFO rate"], state["lfo_target"]
-            if target == "pitch":
-                audio = EFFECT_DISPATCH["vibrato"](
-                    audio, rate=rate, depth=.008 * depth, sample_rate=RATE)
-            elif target == "volume":
-                audio = EFFECT_DISPATCH["tremolo"](
-                    audio, rate=rate, depth=depth, sample_rate=RATE)
-            else:
-                timeline = np.arange(len(audio)) / RATE
-                lfo = .5 + .5 * np.sin(2 * np.pi * rate * timeline)
-                wet = EFFECT_DISPATCH["filter"](
-                    audio, cutoff=max(80, cutoff * .25),
-                    resonance=resonance, sample_rate=RATE)
-                audio = audio * (1 - lfo[:, None] * depth) + wet * lfo[:, None] * depth
-        for effect in state["effects"]:
-            if not effect.get("enabled", True):
-                continue
-            func = EFFECT_DISPATCH.get(effect["type"])
-            if not func:
-                continue
-            params = dict(effect.get("params", {}))
-            params["sample_rate"] = RATE
-            signature = inspect.signature(func)
-            if not any(p.kind == p.VAR_KEYWORD for p in signature.parameters.values()):
-                params = {k: v for k, v in params.items() if k in signature.parameters}
-            processed = func(audio, **params)
-            if processed is not None:
-                audio = processed
-        audio = np.nan_to_num(audio) * knobs["Volume"]
-        peak = float(np.max(np.abs(audio))) if len(audio) else 0
-        if peak > .99:
-            audio *= .99 / peak
-        return np.clip(audio, -1, 1)
-
-    def _pattern_request(self):
-        hits = list(self.piano_roll.hits.items())
-        if not hits:
-            raise ValueError("Place at least one hit in the piano roll")
-        bpm = max(30.0, min(300.0, float(self.piano_roll.bpm.get())))
-        return hits, bpm
-
-    def _mixed_pattern(self, hits, bpm):
-        for (_step, note), hit in hits:
-            if hit.get("audio") is not None:
-                continue
-            key = hit.get("render_key") or self._piano_render_key(hit["snapshot"], note)
-            audio = self._piano_audio_cache.get(key)
-            if audio is None:
-                audio = self._render_sound_state(hit["snapshot"], note).astype(np.float32)
-                self._piano_audio_cache[key] = audio
-                while len(self._piano_audio_cache) > 64:
-                    self._piano_audio_cache.pop(next(iter(self._piano_audio_cache)))
-            hit["audio"] = audio
-        step_frames = max(1, int(RATE * 60.0 / bpm / 4.0))
-        total = self.piano_roll.STEPS * step_frames
-        for (step, _note), hit in hits:
-            total = max(total, step * step_frames + len(hit["audio"]))
-        mix = np.zeros((total, 2), dtype=np.float32)
-        for (step, _note), hit in hits:
-            audio = hit["audio"]
-            start = step * step_frames
-            mix[start:start + len(audio)] += audio
-        peak = float(np.max(np.abs(mix))) if len(mix) else 0
-        if peak > .99:
-            mix *= .99 / peak
-        return mix
-
-    def play_pattern(self):
-        if self._pattern_busy:
-            self.status.set("The piano roll is already rendering a pattern.")
-            return
-        try:
-            hits, bpm = self._pattern_request()
-        except Exception as exc:
-            self.status.set(str(exc))
-            return
-        self._pattern_busy = True
-        self.status.set(f"Rendering {len(hits)} piano-roll hit(s)…")
-        threading.Thread(target=self._play_pattern_worker,
-                         args=(hits, bpm), daemon=True).start()
-
-    def _play_pattern_worker(self, hits, bpm):
-        try:
-            audio = self._mixed_pattern(hits, bpm)
-            self.root.after(0, lambda: self._finish_pattern_play(audio, hits, bpm))
-        except Exception as exc:
-            self.root.after(0, lambda e=exc: self._finish_pattern_play(None, hits, bpm, e))
-
-    def _finish_pattern_play(self, audio, hits, bpm, error=None):
-        self._pattern_busy = False
-        if error is not None:
-            self.status.set(f"Pattern render failed: {error}")
-            return
-        self.preview_data = audio
-        self.wave.draw()
-        self.piano_roll.draw()
-        self._start_stream(audio)
-        self.status.set(f"Playing {len(hits)} piano-roll hit(s) at {bpm:.0f} BPM.")
-
-    def stop_audio(self):
-        with self._stream_lock:
-            self._stream_token += 1
-            process = self._stream_process
-            self._stream_process = None
-            self._stream_buffer = None
-        if process and process.poll() is None:
-            process.terminate()
-        self.status.set("Playback stopped.")
-
-    def export_pattern(self):
-        if self._pattern_busy:
-            self.status.set("The piano roll is already rendering a pattern.")
-            return
-        try:
-            hits, bpm = self._pattern_request()
-        except Exception as exc:
-            self.status.set(str(exc))
-            return
-        os.makedirs(EXPORTS, exist_ok=True)
-        path = filedialog.asksaveasfilename(
-            parent=self.root,
-            title="Save piano-roll pattern as WAV",
-            initialdir=EXPORTS,
-            initialfile=f"figsynth_pattern_{time.strftime('%H%M%S')}.wav",
-            defaultextension=".wav", filetypes=(("WAV audio", "*.wav"),))
-        if not path:
-            return
-        self._pattern_busy = True
-        self.status.set(f"Rendering {len(hits)} hit(s) for {os.path.basename(path)}…")
-        threading.Thread(target=self._export_pattern_worker,
-                         args=(path, hits, bpm), daemon=True).start()
-
-    def _export_pattern_worker(self, path, hits, bpm):
-        try:
-            audio = self._mixed_pattern(hits, bpm)
-            sf.write(path, audio, RATE, subtype="PCM_16")
-            self.root.after(0, lambda: self._finish_pattern_export(path))
-        except Exception as exc:
-            self.root.after(0, lambda e=exc: self._finish_pattern_export(None, e))
-
-    def _finish_pattern_export(self, path, error=None):
-        self._pattern_busy = False
-        self.piano_roll.draw()
-        if error is not None:
-            messagebox.showerror("Pattern export failed", str(error))
-            return
-        self.status.set(f"Saved pattern {os.path.basename(path)}.")
-
-    def _sampler_voice(self, midi, duration=None):
-        if self.sample is None:
-            raise ValueError("Load a sample first")
-        lo, hi = int(self.start * len(self.sample)), int(self.end * len(self.sample))
-        source = self.sample[lo:max(lo + 1, hi)]
-        semitones = midi - 60 + self.knobs["Pitch"].get()
-        ratio = 2 ** (semitones / 12.0) * self.sample_rate / RATE
-        wanted = max(1, int((float(self.duration.get()) if duration is None else duration) * RATE))
-        positions = np.arange(wanted, dtype=np.float64) * ratio
-        if self.loop.get():
-            positions %= max(1, len(source) - 1)
-        valid = positions < len(source) - 1
-        output = np.zeros((wanted, source.shape[1]), dtype=np.float64)
-        p = positions[valid]
-        left = p.astype(np.int64)
-        frac = (p - left)[:, None]
-        output[valid] = source[left] * (1 - frac) + source[np.minimum(left + 1, len(source) - 1)] * frac
-        return output
-
-    def _sampler_audio(self, notes, duration=None):
-        voices = [self._sampler_voice(note, duration) for note in notes]
-        return sum(voices) / math.sqrt(len(voices))
-
-    def _synth_audio(self, notes, duration=None):
-        if not self.patch:
-            raise ValueError("Make a sound first")
-        synth = FiggyGenSynth(RATE)
-        for osc in self.patch.get("oscillators", []):
-            synth.add_oscillator(**osc)
-        synth.set_effects([])
-        synth.envelope = Envelope(attack=self.knobs["Attack"].get(),
-                                  decay=self.knobs["Decay"].get(),
-                                  sustain_level=self.knobs["Sustain"].get(),
-                                  release=self.knobs["Release"].get())
-        transpose = self.knobs["Pitch"].get()
-        frequencies = [440 * 2 ** ((note + transpose - 69) / 12) for note in notes]
-        render_duration = float(self.duration.get()) if duration is None else duration
-        return synth.render(render_duration, frequencies)
-
-    def _cached_synth_audio(self, notes):
-        source = self.live_effect_source if self.live_effect_source is not None else self.live_source
-        if source is None or not len(source):
-            return self._synth_audio(notes, .25)
-        wanted = max(1, int(float(self.duration.get()) * RATE))
-        voices = []
-        loop_start = min(self.live_loop_start, max(0, len(source) - 2))
-        loop_span = max(1, len(source) - loop_start)
-        for note in notes:
-            semitones = note - 60 + self.knobs["Pitch"].get()
-            ratio = 2 ** (semitones / 12.0)
-            positions = loop_start + (
-                np.arange(wanted, dtype=np.float64) * ratio
-            ) % loop_span
-            left = positions.astype(np.int64)
-            frac = (positions - left)[:, None]
-            voice = source[left] * (1.0 - frac) + source[np.minimum(left + 1, len(source) - 1)] * frac
-            voices.append(voice)
-        return sum(voices) / math.sqrt(len(voices))
-
-    def render(self, notes, preview=False, live=False):
-        notes = [notes] if np.isscalar(notes) else list(notes)
-        preview_duration = (min(.25, max(.05, float(self.duration.get())))
-                            if preview and not live else None)
-        if self.mode.get() == "sample":
-            audio = self._sampler_audio(notes, preview_duration)
-        elif live:
-            audio = self._synth_audio(notes)
-        else:
-            audio = self._synth_audio(notes, preview_duration)
-        if audio.ndim == 1:
-            audio = np.column_stack((audio, audio))
-        if self.mode.get() == "synth" and (self.start > 0.0 or self.end < 1.0):
-            lo = max(0, min(len(audio) - 1, int(self.start * len(audio))))
-            hi = max(lo + 1, min(len(audio), int(self.end * len(audio))))
-            audio = audio[lo:hi]
-        env = Envelope(attack=self.knobs["Attack"].get(), decay=self.knobs["Decay"].get(),
-                       sustain_level=self.knobs["Sustain"].get(),
-                       release=self.knobs["Release"].get())
-        if self.mode.get() == "sample":
-            audio *= env.get_envelope(len(audio))[:, None]
-        cutoff = self.knobs["Cutoff"].get()
-        resonance = self.knobs["Resonance"].get()
-        if cutoff < 17950:
-            audio = EFFECT_DISPATCH["filter"](audio, cutoff=cutoff, resonance=resonance,
-                                               sample_rate=RATE)
-        depth = self.knobs["LFO depth"].get()
-        if depth > .001:
-            target, rate = self.lfo_target.get(), self.knobs["LFO rate"].get()
-            if target == "pitch":
-                audio = EFFECT_DISPATCH["vibrato"](audio, rate=rate, depth=.008 * depth,
-                                                    sample_rate=RATE)
-            elif target == "volume":
-                audio = EFFECT_DISPATCH["tremolo"](audio, rate=rate, depth=depth,
-                                                    sample_rate=RATE)
-            else:
-                t = np.arange(len(audio)) / RATE
-                lfo = .5 + .5 * np.sin(2 * np.pi * rate * t)
-                wet = EFFECT_DISPATCH["filter"](audio, cutoff=max(80, cutoff * .25),
-                                                resonance=resonance, sample_rate=RATE)
-                audio = audio * (1 - lfo[:, None] * depth) + wet * lfo[:, None] * depth
-        if not preview and not live:
-            for fx in self.effects:
-                if not fx.get("enabled", True):
-                    continue
-                func = EFFECT_DISPATCH.get(fx["type"])
-                if not func:
-                    continue
-                params = dict(fx.get("params", {}))
-                params["sample_rate"] = RATE
-                sig = inspect.signature(func)
-                if not any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values()):
-                    params = {k: v for k, v in params.items() if k in sig.parameters}
-                audio = func(audio, **params)
-                if audio is None:
-                    raise RuntimeError(f"{fx['type']} returned no audio")
-        audio = np.nan_to_num(audio) * self.knobs["Volume"].get()
-        peak = float(np.max(np.abs(audio))) if len(audio) else 0
-        if peak > .99:
-            audio *= .99 / peak
-        return np.clip(audio, -1, 1)
-
-    def play(self, notes):
-        notes = [int(notes)] if np.isscalar(notes) else [int(n) for n in notes]
-        self.current_note = notes[0]
-        self.current_notes = notes
-        label = notes_label(notes)
-        cache_key = self._live_playback_key(notes)
-        self.status.set(f"Playing {label}…")
-        threading.Thread(target=self._play_worker,
-                         args=(notes, cache_key), daemon=True).start()
-
-    def _live_playback_key(self, notes):
-        return (
-            tuple(notes), self.mode.get(), id(self.sample), self.sample_path,
-            self.sample_rate, self.start, self.end, float(self.duration.get()),
-            bool(self.loop.get()), self.lfo_target.get(),
-            tuple((name, knob.get()) for name, knob in self.knobs.items()),
-            repr(self.patch), repr(self.effects),
-        )
-
-    def _play_worker(self, notes, cache_key):
-        try:
-            dry = self.render(notes, preview=True, live=True)
-            self._live_dry_buffer = dry
-            cached = self._live_wet_cache.get(cache_key)
-            audio = cached if cached is not None else self._process_realtime_effects(dry)
-            if cached is None:
-                self._live_wet_cache[cache_key] = audio
-                while len(self._live_wet_cache) > 24:
-                    self._live_wet_cache.pop(next(iter(self._live_wet_cache)))
-            self.preview_data = audio
-            self.root.after(0, self.wave.draw)
-            self._start_stream(audio)
-            active = sum(effect.get("enabled", True) for effect in self.effects)
-            self.root.after(0, lambda: self.status.set(
-                f"Live: {notes_label(notes)} • {active} active rack effect(s)"))
-        except Exception as exc:
-            self.root.after(0, lambda e=exc: messagebox.showerror("Playback failed", str(e)))
-
-    def _start_stream(self, audio):
-        with self._stream_lock:
-            self._stream_token += 1
-            token = self._stream_token
-            previous = self._stream_process
-            if previous and previous.poll() is None:
-                previous.terminate()
-            process = subprocess.Popen(
-                ["pacat", "--playback", "--raw", "--format=s16le",
-                 f"--rate={RATE}", "--channels=2", f"--device={PULSE_SINK}",
-                 "--latency-msec=25"],
-                stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL, bufsize=0)
-            self._stream_process = process
-            self._stream_buffer = np.asarray(audio, dtype=np.float64)
-            self._stream_position = 0
-        threading.Thread(target=self._stream_writer,
-                         args=(token, process), daemon=True).start()
-        return token
-
-    def _stream_writer(self, token, process):
-        try:
-            while True:
-                with self._stream_lock:
-                    if token != self._stream_token or process is not self._stream_process:
-                        break
-                    audio = self._stream_buffer
-                    position = self._stream_position
-                    if audio is None or position >= len(audio):
-                        break
-                    end = min(len(audio), position + 512)
-                    chunk = np.array(audio[position:end], copy=True)
-                    self._stream_position = end
-                pcm = (np.clip(chunk, -1.0, 1.0) * 32767.0).astype("<i2").tobytes()
-                process.stdin.write(pcm)
-        except (BrokenPipeError, OSError):
-            pass
-        finally:
-            try:
-                process.stdin.close()
-            except (BrokenPipeError, OSError, AttributeError):
-                pass
-            process.wait()
-            with self._stream_lock:
-                if process is self._stream_process:
-                    self._stream_process = None
-
-    def _replace_stream_buffer(self, audio, expected_token=None):
-        if expected_token is not None and expected_token != self._stream_token:
-            return
-        self.preview_data = audio
-        self.wave.draw()
-        with self._stream_lock:
-            if expected_token is not None and expected_token != self._stream_token:
-                return
-            process = self._stream_process
-            if not process or process.poll() is not None:
-                return
-            position = self._stream_position
-            self._stream_buffer = np.asarray(audio, dtype=np.float64)
-            self._stream_position = min(position, max(0, len(audio) - 1))
-
-    def export(self):
-        if self._export_busy:
-            self.status.set("A sample is already being saved.")
-            return
-        os.makedirs(EXPORTS, exist_ok=True)
-        rendered = "-".join(note_name(n).replace("#", "s") for n in self.current_notes)
-        base = f"figlib_{self.genre.get()}_{rendered}_{time.strftime('%H%M%S')}.wav"
-        path = filedialog.asksaveasfilename(
-            parent=self.root,
-            title="Export audio",
-            initialdir=EXPORTS,
-            initialfile=base,
-            defaultextension=".wav",
-            filetypes=(("WAV audio", "*.wav"), ("MP3 audio", "*.mp3")),
-        )
-        if not path:
-            return
-        notes = list(self.current_notes)
-        cache_key = self._live_playback_key(notes)
-        self._export_busy = True
-        self.save_button.configure(state="disabled", text="Saving…")
-        self.status.set(f"Exporting {os.path.basename(path)}…")
-        threading.Thread(target=self._export_worker,
-                         args=(path, notes, cache_key), daemon=True).start()
-
-    def _export_worker(self, path, notes, cache_key):
-        try:
-            audio = self._live_wet_cache.get(cache_key)
-            if audio is None:
-                dry = self.render(notes, preview=True, live=True)
-                audio = self._process_live_macros(dry)
-            self._write_audio_file(path, audio)
-            self.root.after(0, lambda: self._finish_export(path))
-        except Exception as exc:
-            self.root.after(0, lambda e=exc: self._finish_export(None, e))
-
-    def _finish_export(self, path, error=None):
-        self._export_busy = False
-        self.save_button.configure(state="normal", text="Export audio")
-        if error is not None:
-            messagebox.showerror("Export failed", str(error))
-            return
-        self.status.set(f"Saved {os.path.basename(path)}.")
-
-    @staticmethod
-    def _write_audio_file(path, audio):
-        suffix = os.path.splitext(path)[1].lower()
-        if suffix == ".wav":
-            sf.write(path, audio, RATE, subtype="PCM_16")
-            return
-        if suffix != ".mp3":
-            raise ValueError("Choose a .wav or .mp3 filename")
-        descriptor, temporary = tempfile.mkstemp(prefix="figsynth-export-", suffix=".wav")
-        os.close(descriptor)
-        try:
-            sf.write(temporary, audio, RATE, subtype="PCM_16")
-            subprocess.run(
-                ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
-                 "-i", temporary, "-codec:a", "libmp3lame", "-q:a", "2", path],
-                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                text=True)
-        finally:
-            try:
-                os.unlink(temporary)
-            except FileNotFoundError:
-                pass
 
 
 if __name__ == "__main__":

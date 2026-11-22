@@ -292,7 +292,7 @@ generate 20
 
 ### Effect Categories & Common Parameters
 
-*For the full list of all 91 effects and every single parameter, see [CLI_REFERENCE.md](CLI_REFERENCE.md).*
+*For the full list of all 92 effects and every single parameter, see [CLI_REFERENCE.md](CLI_REFERENCE.md).*
 
 **Common Effects:**
 

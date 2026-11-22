@@ -4,8 +4,9 @@
 html,body{height:100%;margin:0;overflow:hidden;background:#11131a;font:14px system-ui,sans-serif}.bar{height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#171a23;color:#fff;border-bottom:1px solid #343b4d;box-sizing:border-box}.brand{font-weight:800;margin-right:auto}.button{color:#fff;background:#7c5cff;border:0;border-radius:8px;padding:8px 12px;text-decoration:none;font:700 14px system-ui,sans-serif;cursor:pointer}.button.audio-on{background:#16845b}.button:disabled{opacity:.65;cursor:wait}iframe{width:100%;height:calc(100% - 48px);border:0;display:block}
 </style></head><body><div class="bar"><span class="brand">Temporaman Shrine</span><button class="button audio-on" id="audio" type="button">&#128260; Connecting&hellip;</button></div>
 <iframe title="Audacity workspace" src="/temporaman/vnc.html?autoconnect=true&resize=remote&path=temporaman/websockify&view_only=false"></iframe>
-<script src="/temporaman/collab.js?v=20261120-exports-first"></script><script>
+<script src="/temporaman/collab.js?v=20261120-exports-first"></script><script src="/temporaman/audio-input.js?v=studio-1"></script><script>
 window.TemporamanCollab.mount({iframe:document.querySelector('iframe'),bar:document.querySelector('.bar')});
+window.TemporamanAudioInput?.mount(document.querySelector('.bar'));
 let audioContext, audioSocket, nextStart = 0, audioWanted = true;
 let audioReconnectTimer = 0, audioReconnectDelay = 500;
 const audioButton = document.querySelector('#audio');

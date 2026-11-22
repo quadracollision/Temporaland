@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=OpenRB-338
+Comment=Open or focus OpenRB-338
+Exec=/usr/local/libexec/audacity-studio-open-app openrb
+Icon=/usr/local/share/icons/temporaman-openrb.svg
+Terminal=false
+Categories=AudioVideo;Audio;

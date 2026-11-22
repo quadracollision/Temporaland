@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SunVox
+Comment=Open or focus SunVox modular synthesizer
+Exec=/usr/local/libexec/audacity-studio-open-app sunvox
+Icon=/usr/local/share/icons/temporaman-sunvox.png
+Terminal=false
+StartupNotify=false

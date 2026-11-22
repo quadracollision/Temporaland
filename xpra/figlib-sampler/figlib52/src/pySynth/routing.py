@@ -7,7 +7,7 @@ from .oscillator import Oscillator
 import inspect
 
 # Effects imports
-from .effects.filters import apply_filter, apply_comb, apply_formant
+from .effects.filters import apply_filter, apply_eq12, apply_comb, apply_formant
 from .effects.delays import apply_delay
 from .effects.reverb import apply_reverb
 from .effects.modulations import (apply_chorus, apply_flanger, apply_phaser,
@@ -53,6 +53,7 @@ from .effects.hardware import (apply_moog_ladder, apply_303_filter,
 EFFECT_DISPATCH = {
     # Filters
     'filter':       apply_filter,
+    'eq12':         apply_eq12,
     'comb':         apply_comb,
     'formant':      apply_formant,
     # Delays / Space

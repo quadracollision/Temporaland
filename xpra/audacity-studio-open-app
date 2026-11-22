@@ -26,11 +26,6 @@ case "$app" in
     window_class=Audacity
     executable=/usr/bin/audacity
     ;;
-  helio)
-    process=helio
-    window_class=helio
-    executable=/usr/local/bin/helio
-    ;;
   shuriken)
     process=shuriken
     window_class=shuriken
@@ -42,15 +37,23 @@ case "$app" in
     executable=/usr/bin/hydrogen
     arguments=(-d pulseaudio --layout tabbed -n)
     ;;
-  lv2)
-    process=temporaman-lv2
-    window_class=TemporamanLV2
-    executable=/usr/local/bin/temporaman-lv2
+  sunvox)
+    process=sunvox
+    window_class=sunvox
+    executable=/usr/local/bin/sunvox
     ;;
-  chipwave)
-    process=chipwave
-    window_class=ChipWave
-    executable=/usr/local/lib/chipwave-studio-0.2.22.0/AppRun
+  openrb)
+    process=OpenRB-338
+    window_class=OpenRB-338
+    executable=/usr/local/bin/OpenRB-338
+    export WGPU_BACKEND=gl
+    export ORB_MOD_DIR=/srv/audacity-studio/projects/OpenRB-338/Mods
+    ;;
+  openrb-kit)
+    process=openrb-figlib-kit.py
+    process_match=full
+    window_class=OpenRBFigLibKit
+    executable=/usr/local/libexec/openrb-figlib-kit
     ;;
   figlib)
     process=figlib-sampler.py
@@ -64,7 +67,7 @@ case "$app" in
     executable=/usr/local/libexec/temporaman-downloader
     ;;
   *)
-    printf 'Usage: %s audacity|helio|shuriken|hydrogen|lv2|chipwave|figlib|downloader\n' "$0" >&2
+    printf 'Usage: %s audacity|shuriken|hydrogen|sunvox|openrb|openrb-kit|figlib|downloader\n' "$0" >&2
     exit 64
     ;;
 esac

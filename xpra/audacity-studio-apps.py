@@ -37,7 +37,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
-        app = {"/helio": "helio", "/downloader": "downloader"}.get(path)
+        app = {"/downloader": "downloader"}.get(path)
         if app is None:
             self.send_json(404, {"error": "not found"})
             return

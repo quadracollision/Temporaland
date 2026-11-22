@@ -8,14 +8,11 @@ Audacity.
 
 The active lightweight deployment lives under [`xpra/`](xpra/README.md). Its
 Ubuntu 24.04 installer configures Audacity, FigSynth2, Hydrogen, Shuriken,
-Nginx, systemd services, persistent project storage, and the browser UI.
-`install-temporaland.sh` can create a second isolated workspace with its own
-Unix user, files, desktop, audio sink, services, cookies, and browser profile.
+SunVox, OpenRB-338, Nginx, systemd services, persistent project storage, and
+the browser UI.
 
 ```bash
 sudo ./xpra/install-lightweight-studio.sh
-sudo TEMPORALAND_PASSWORD_FILE=/root/temporaland-password \
-  ./xpra/install-temporaland.sh
 ./scripts/validate-repository.sh
 ./scripts/build-release.sh
 ```
@@ -61,7 +58,6 @@ The exact admin steps are in [`docs/configure-kasm.md`](docs/configure-kasm.md).
 
 Repository-only checks can be run at any time with `./scripts/validate-repository.sh`.
 
-The discovered `runeo-deploy` target is documented in [`docs/runeo-host-audit.md`](docs/runeo-host-audit.md). Its current size is not sufficient to run Kasm safely.
 
 ## File workflow
 

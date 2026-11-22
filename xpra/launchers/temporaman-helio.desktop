@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Helio
-Comment=Open or focus the Helio sequencer
-Exec=/usr/local/libexec/audacity-studio-open-app helio
-Icon=/usr/local/share/icons/temporaman-helio.svg
-Terminal=false
-StartupNotify=false

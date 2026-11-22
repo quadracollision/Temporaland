@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*.wav
+*.mp3
+*.aif
+*.aiff
+*.flac
+*.fig
+.venv/
+venv/
