@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Speech
+Comment=Render speech samples for Audacity
+Exec=/usr/bin/curl --noproxy "*" --fail --silent --max-time 5 -X POST http://127.0.0.1:14503/speech
+Icon=/usr/local/share/icons/temporaman-speech.svg
+Terminal=false
+StartupWMClass=TemporamanSpeech

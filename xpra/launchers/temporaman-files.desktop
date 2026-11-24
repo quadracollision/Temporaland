@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Files
+Comment=Organize shared projects, imports, and exports
+Exec=/usr/bin/pcmanfm /srv/audacity-studio
+Icon=/usr/share/icons/Adwaita/scalable/places/folder.svg
+Terminal=false
+StartupNotify=false
+StartupWMClass=Pcmanfm

@@ -66,8 +66,17 @@ case "$app" in
     window_class=TemporamanDownloader
     executable=/usr/local/libexec/temporaman-downloader
     ;;
+  speech)
+    window_class=TemporamanSpeech
+    process_match=full
+    process_pattern=/usr/local/libexec/temporaman-speech
+    executable=/usr/bin/xterm
+    arguments=(-class "$window_class" -T 'Temporaman Speech' -geometry 76x24
+      -fa Monospace -fs 12 -xrm '*allowWindowOps: false'
+      -e "$process_pattern")
+    ;;
   *)
-    printf 'Usage: %s audacity|shuriken|hydrogen|sunvox|openrb|openrb-kit|figlib|downloader\n' "$0" >&2
+    printf 'Usage: %s audacity|shuriken|hydrogen|sunvox|openrb|openrb-kit|figlib|downloader|speech\n' "$0" >&2
     exit 64
     ;;
 esac
@@ -81,7 +90,7 @@ exec 9>"$XDG_RUNTIME_DIR/open-$app.lock"
 flock 9
 
 if [[ "$process_match" == full ]]; then
-  pids="$(pgrep -u "$(id -u)" -f "$executable" || true)"
+  pids="$(pgrep -u "$(id -u)" -f "${process_pattern:-$executable}" || true)"
 else
   pids="$(pgrep -u "$(id -u)" -x "$process" || true)"
 fi

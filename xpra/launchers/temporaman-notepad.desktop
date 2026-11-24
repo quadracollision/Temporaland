@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Notepad
+Comment=Write and edit plain-text notes
+Exec=/usr/bin/mousepad
+Icon=/usr/share/icons/hicolor/scalable/apps/org.xfce.mousepad.svg
+Terminal=false

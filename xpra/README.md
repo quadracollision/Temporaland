@@ -15,6 +15,8 @@ Log in with the studio password, then click **Listen** in the top bar. Browser a
 
 To record an interface connected to your computer, click **Input → Connect to Audacity** in the studio toolbar and grant browser audio access. In Audacity, choose **Transport → Rescan Audio Devices**, then select the device name shown in the Input dialog under **Audio Setup → Recording Device**. Keep the studio tab open while recording. This workflow was tested in Chrome. Shared **Listen** playback stays available to everyone.
 
+**Speech** opens a terminal for making speech samples with eSpeak NG or Piper. Use `engine` and `voice` to select a voice, `text` to enter your words, `preview` to hear it through Listen, and `save` to write a WAV to Audacity imports.
+
 Click **Upload samples** to add WAV, MP3, FLAC, Ogg, Opus, AIFF, M4A, CAF, or AU files. In Audacity, use **File → Import → Audio** and browse to `/srv/audacity-studio/imports`.
 
 Audacity includes the **PeteShift** macro-effect by Jacob Pereira. Draw a time
@@ -34,6 +36,8 @@ after an upgrade; an installed plug-in uses working memory only when loaded.
 The fixed application and transfer icons in the bottom bar launch or focus Audacity, SunVox, FigSynth2, Shuriken, Hydrogen, OpenRB-338, the audio downloader, the sample uploader, and the browser file exporter. The application launchers use their original artwork; FigSynth2 uses the supplied fig icon. The right arrow lists audio in the shared imports and exports folders and downloads the selected file to the visitor's own computer. These icons remain in place when an application is closed. Closing a window terminates its process and releases its working memory; clicking the fixed icon starts one fresh instance. Running applications also have ordinary task buttons to the right of the fixed icons for minimizing and restoring their windows.
 
 Hydrogen starts in its compact tabbed layout with its PulseAudio driver connected to Temporaman. Use **Project → Export Song** and choose **Documents → Hydrogen → Audacity imports** to render a pattern or song for Audacity. The optional large drumkit bundle is not installed.
+
+The rightmost **Files** icon opens the studio’s home folder in PCManFM. **Projects**, **Imports**, and **Exports** are inside it. Choose **Applications** under **Places** to open the studio apps and **Notepad** (Mousepad).
 
 Shuriken imports audio with **Ctrl+I**, detects onset or beat slice points, and commits them with **Slice**. Use **Ctrl+E**, set the output directory to `/srv/audacity-studio/imports`, and enter a folder name. It exports the individual WAV slices into that folder for Audacity to import.
 

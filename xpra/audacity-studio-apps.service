@@ -20,8 +20,8 @@ NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=true
 ReadWritePaths=/srv/audacity-studio
-MemoryHigh=180M
-MemoryMax=250M
+MemoryHigh=300M
+MemoryMax=384M
 
 [Install]
 WantedBy=multi-user.target

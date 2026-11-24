@@ -17,15 +17,16 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends \
-  audacity automake build-essential calf-plugins cmake curl dbus-x11 eq10q ffmpeg guitarix-lv2 \
+  adwaita-icon-theme audacity automake build-essential calf-plugins cmake curl dbus-x11 eq10q ffmpeg guitarix-lv2 \
   invada-studio-plugins-lv2 libasound2-dev libaubio-dev lsp-plugins-lv2 \
   libgl1-mesa-dev libjack-jackd2-dev liblo-dev libqt5opengl5-dev \
-  libpulse-dev librubberband-dev libsamplerate0-dev libsndfile1-dev libtool mda-lv2 nginx \
-  libsdl2-2.0-0 libxkbcommon-x11-0 novnc openbox padthv1-lv2 patch pkg-config pulseaudio pulseaudio-utils python3 python3-numpy python3-scipy python3-soundfile python3-tk rustup swh-lv2 \
+  libpulse-dev librsvg2-common librubberband-dev libsamplerate0-dev libsndfile1-dev libtool mda-lv2 mousepad nginx \
+  libsdl2-2.0-0 libxkbcommon-x11-0 novnc openbox padthv1-lv2 patch pcmanfm pkg-config pulseaudio pulseaudio-utils python3 python3-numpy python3-scipy python3-soundfile python3-tk rustup swh-lv2 \
   qt5-qmake qtbase5-dev samplv1-lv2 so-synth-lv2 synthv1-lv2 tint2 \
   unzip websockify x11-utils x11vnc x42-plugins xdotool xvfb
 
 apt-get install -y --no-install-recommends -t noble-backports hydrogen
+bash "$script_dir/install-speech-engines.sh"
 
 if ! id audacity-studio >/dev/null 2>&1; then
   useradd --system --create-home --home-dir /srv/audacity-studio --shell /usr/sbin/nologin audacity-studio
@@ -78,6 +79,8 @@ install -o root -g root -m 0644 "$script_dir/tint2rc" /etc/audacity-studio/tint2
 install -o root -g root -m 0755 "$script_dir/audacity-studio-launch" /usr/local/libexec/audacity-studio-launch
 install -o root -g root -m 0755 "$script_dir/audacity-studio-open-app" /usr/local/libexec/audacity-studio-open-app
 install -o root -g root -m 0755 "$script_dir/temporaman-downloader.py" /usr/local/libexec/temporaman-downloader
+install -o root -g root -m 0755 "$script_dir/temporaman-speech.py" /usr/local/libexec/temporaman-speech
+rm -f /usr/local/libexec/temporaman-files
 install -o root -g root -m 0755 "$script_dir/audacity-studio-web.py" /usr/local/libexec/audacity-studio-web
 install -o root -g root -m 0755 "$script_dir/audacity-studio-apps.py" /usr/local/libexec/audacity-studio-apps
 install -o root -g root -m 0755 "$script_dir/audacity-studio-collab.py" /usr/local/libexec/audacity-studio-collab
@@ -95,6 +98,7 @@ install -o root -g root -m 0644 "$script_dir/collab.js" /var/www/temporaman/coll
 install -o root -g root -m 0644 "$script_dir/audio-input.js" /var/www/temporaman/audio-input.js
 install -o root -g root -m 0644 "$script_dir/launchers/"*.desktop /usr/local/share/applications/
 install -o root -g root -m 0644 "$script_dir/icons/"* /usr/local/share/icons/
+bash "$script_dir/install-application-place.sh"
 install -o audacity-studio -g audacity-studio -m 0644 "$script_dir/asoundrc" /srv/audacity-studio/.asoundrc
 # Remove artifacts from releases that still bundled WebSynth and Tiny-LV2.
 rm -rf /var/www/temporaman/synth
